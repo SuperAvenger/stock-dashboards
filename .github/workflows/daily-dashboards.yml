@@ -22,17 +22,17 @@ jobs:
         run: |
           pip install pandas numpy requests
 
-      - name: Generate HK Dashboard
+      - name: Generate HK Dashboard (Pro Version)
         env:
           LONGPORT_APP_KEY: ${{ secrets.LONGPORT_APP_KEY }}
           LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
-        run: python scripts/hk_dashboard.py
+        run: python scripts/hk_dashboard_pro.py
 
-      - name: Generate US Dashboard
+      - name: Generate US Dashboard (Pro Version)
         env:
           LONGPORT_APP_KEY: ${{ secrets.LONGPORT_APP_KEY }}
           LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
-        run: python scripts/us_dashboard.py
+        run: python scripts/us_dashboard_pro.py
 
       - name: Push to Feishu
         env:
