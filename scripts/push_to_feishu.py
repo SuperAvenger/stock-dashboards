@@ -56,9 +56,13 @@ def push_to_feishu(hk_data, us_data):
     ]
     
     for i, stock in enumerate(hk_stocks, 1):
+        f = stock.get('fundamentals', {})
         lines.append(f"{i}. **{stock['name']}** `{stock['symbol']}`")
         lines.append(f"   得分：{stock['score']} | {stock['signal']}")
         lines.append(f"   现价：HK$ {stock['current']} ({stock['change']:+.2f}%)")
+        lines.append(f"   行业：{f.get('sector', 'N/A')} | PE: {f.get('pe', 'N/A')} | PB: {f.get('pb', 'N/A')}")
+        lines.append(f"   市值：{f.get('market_cap', 'N/A')} | 股息：{f.get('dividend', 'N/A')}")
+        lines.append(f"   52 周：{stock['low_52w']} ~ {stock['high_52w']} (距高点{stock['pct_from_high']:+.1f}%)")
         lines.append("")
     
     lines.extend([
@@ -69,19 +73,23 @@ def push_to_feishu(hk_data, us_data):
     ])
     
     for i, stock in enumerate(us_stocks, 1):
+        f = stock.get('fundamentals', {})
         lines.append(f"{i}. **{stock['name']}** `{stock['symbol']}`")
         lines.append(f"   得分：{stock['score']} | {stock['signal']}")
         lines.append(f"   现价：${stock['current']} ({stock['change']:+.2f}%)")
+        lines.append(f"   行业：{f.get('sector', 'N/A')} | PE: {f.get('pe', 'N/A')} | PB: {f.get('pb', 'N/A')}")
+        lines.append(f"   市值：{f.get('market_cap', 'N/A')} | 股息：{f.get('dividend', 'N/A')}")
+        lines.append(f"   52 周：{stock['low_52w']} ~ {stock['high_52w']} (距高点{stock['pct_from_high']:+.1f}%)")
         lines.append("")
     
     lines.extend([
         "═" * 40,
         "",
         "🔗 **查看详细看板:**",
-        f"🇭🇰 港股看板：https://SuperAvenger.github.io/stock-dashboards/hk-dashboard.html",
-        f"🇺🇸 美股看板：https://SuperAvenger.github.io/stock-dashboards/us-dashboard.html",
+        f"🇭🇰 港股：https://SuperAvenger.github.io/stock-dashboards/hk-dashboard.html",
+        f"🇺🇸 美股：https://SuperAvenger.github.io/stock-dashboards/us-dashboard.html",
         "",
-        f"_更新时间：{hk_time}_"
+        f"_数据更新：{hk_time}_"
     ])
     
     message = '\n'.join(lines)

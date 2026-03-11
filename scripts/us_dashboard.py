@@ -169,7 +169,11 @@ def analyze_stock(symbol, name, settings):
     
     high_52w = df['high'].max()
     low_52w = df['low'].min()
+    pct_from_high = ((current_price - high_52w) / high_52w) * 100
+    pct_from_low = ((current_price - low_52w) / low_52w) * 100
+    
     score = calculate_score(df, current_price)
+    fundamentals = get_fundamentals(symbol, name, current_price)
     
     price_history = []
     for idx, row in df.tail(60).iterrows():
@@ -187,7 +191,35 @@ def analyze_stock(symbol, name, settings):
         'signal': get_signal(score),
         'high_52w': round(high_52w, 2),
         'low_52w': round(low_52w, 2),
+        'pct_from_high': round(pct_from_high, 1),
+        'pct_from_low': round(pct_from_low, 1),
+        'fundamentals': fundamentals,
         'price_history': price_history
+    }
+
+
+def get_fundamentals(symbol, name, current_price):
+    """获取基本面数据（模拟）"""
+    fundamentals_db = {
+        'NVDA': {'pe': 65.2, 'pb': 45.8, 'market_cap': '3.2 万亿', 'sector': 'AI 芯片', 'dividend': '0.03%'},
+        'AAPL': {'pe': 28.5, 'pb': 42.1, 'market_cap': '3.5 万亿', 'sector': '消费电子', 'dividend': '0.45%'},
+        'MSFT': {'pe': 32.8, 'pb': 12.5, 'market_cap': '3.1 万亿', 'sector': '软件', 'dividend': '0.75%'},
+        'GOOGL': {'pe': 24.5, 'pb': 6.2, 'market_cap': '2.0 万亿', 'sector': '互联网', 'dividend': '0.0%'},
+        'AMZN': {'pe': 58.2, 'pb': 8.5, 'market_cap': '2.2 万亿', 'sector': '电商/云', 'dividend': '0.0%'},
+        'META': {'pe': 28.2, 'pb': 8.8, 'market_cap': '1.5 万亿', 'sector': '社交媒体', 'dividend': '0.35%'},
+        'TSLA': {'pe': 72.5, 'pb': 12.8, 'market_cap': '0.8 万亿', 'sector': '新能源汽车', 'dividend': '0.0%'},
+        'AMD': {'pe': 48.5, 'pb': 3.8, 'market_cap': '0.7 万亿', 'sector': '半导体', 'dividend': '0.0%'},
+        'NFLX': {'pe': 42.8, 'pb': 12.5, 'market_cap': '0.4 万亿', 'sector': '流媒体', 'dividend': '0.0%'},
+        'AVGO': {'pe': 35.2, 'pb': 15.8, 'market_cap': '0.8 万亿', 'sector': '半导体', 'dividend': '1.8%'},
+    }
+    
+    base = fundamentals_db.get(symbol, {})
+    return {
+        'pe': base.get('pe', round(25 + current_price/20, 1)),
+        'pb': base.get('pb', round(5 + current_price/50, 1)),
+        'market_cap': base.get('market_cap', 'N/A'),
+        'sector': base.get('sector', '其他'),
+        'dividend': base.get('dividend', '0.0%')
     }
 
 

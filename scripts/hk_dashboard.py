@@ -175,9 +175,14 @@ def analyze_stock(symbol, name, settings):
     # 52 周高低
     high_52w = df['high'].max()
     low_52w = df['low'].min()
+    pct_from_high = ((current_price - high_52w) / high_52w) * 100
+    pct_from_low = ((current_price - low_52w) / low_52w) * 100
     
     # 得分
     score = calculate_score(df, current_price)
+    
+    # 基本面数据（模拟，实际可从长桥 API 获取）
+    fundamentals = get_fundamentals(symbol, name, current_price)
     
     # 价格历史
     price_history = []
@@ -196,7 +201,37 @@ def analyze_stock(symbol, name, settings):
         'signal': get_signal(score),
         'high_52w': round(high_52w, 2),
         'low_52w': round(low_52w, 2),
+        'pct_from_high': round(pct_from_high, 1),
+        'pct_from_low': round(pct_from_low, 1),
+        'fundamentals': fundamentals,
         'price_history': price_history
+    }
+
+
+def get_fundamentals(symbol, name, current_price):
+    """获取基本面数据（模拟）"""
+    # 实际可从长桥 API 或第三方获取
+    # 这里用行业典型值模拟
+    fundamentals_db = {
+        '09988.HK': {'pe': 12.5, 'pb': 1.8, 'market_cap': '2.1 万亿', 'sector': '电商', 'dividend': '1.2%'},
+        '00700.HK': {'pe': 18.2, 'pb': 3.5, 'market_cap': '4.5 万亿', 'sector': '互联网', 'dividend': '0.4%'},
+        '03690.HK': {'pe': 35.8, 'pb': 4.2, 'market_cap': '1.0 万亿', 'sector': '本地生活', 'dividend': '0.0%'},
+        '01810.HK': {'pe': 22.1, 'pb': 5.1, 'market_cap': '0.8 万亿', 'sector': '消费电子', 'dividend': '0.5%'},
+        '09961.HK': {'pe': 15.3, 'pb': 3.8, 'market_cap': '0.5 万亿', 'sector': '旅游', 'dividend': '0.0%'},
+        '01024.HK': {'pe': 28.5, 'pb': 4.5, 'market_cap': '0.6 万亿', 'sector': '短视频', 'dividend': '0.0%'},
+        '09618.HK': {'pe': 14.2, 'pb': 2.1, 'market_cap': '0.4 万亿', 'sector': '电商', 'dividend': '0.0%'},
+        '09999.HK': {'pe': 16.8, 'pb': 3.2, 'market_cap': '0.5 万亿', 'sector': '游戏', 'dividend': '1.5%'},
+        '00981.HK': {'pe': 45.2, 'pb': 2.8, 'market_cap': '0.3 万亿', 'sector': '半导体', 'dividend': '0.0%'},
+        '01211.HK': {'pe': 25.6, 'pb': 4.8, 'market_cap': '0.9 万亿', 'sector': '新能源汽车', 'dividend': '0.3%'},
+    }
+    
+    base = fundamentals_db.get(symbol, {})
+    return {
+        'pe': base.get('pe', round(15 + current_price/50, 1)),
+        'pb': base.get('pb', round(2 + current_price/100, 1)),
+        'market_cap': base.get('market_cap', 'N/A'),
+        'sector': base.get('sector', '其他'),
+        'dividend': base.get('dividend', '0.0%')
     }
 
 
