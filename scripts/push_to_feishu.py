@@ -34,52 +34,55 @@ def load_data():
     return hk_data, us_data
 
 
+def format_stock_line(stock, currency=''):
+    """格式化单只股票信息"""
+    f = stock.get('fundamentals', {})
+    lines = []
+    lines.append(f"**{stock['name']}** `{stock['symbol']}`")
+    lines.append(f"   得分：{stock['score']} | {stock['signal']}")
+    lines.append(f"   现价：{currency}{stock['current']} ({stock['change']:+.2f}%)")
+    lines.append(f"   行业：{f.get('sector', 'N/A')} | PE: {f.get('pe', 'N/A')} | PB: {f.get('pb', 'N/A')}")
+    lines.append(f"   市值：{f.get('market_cap', 'N/A')} | 股息：{f.get('dividend', 'N/A')}")
+    lines.append(f"   52 周：{stock['low_52w']} ~ {stock['high_52w']} (距高点{stock['pct_from_high']:+.1f}%)")
+    return '\n'.join(lines)
+
+
 def push_to_feishu(hk_data, us_data):
     """推送 Markdown 消息到飞书"""
     if not FEISHU_WEBHOOK:
         print("⚠️ 未配置飞书 Webhook")
         return
     
-    hk_stocks = hk_data.get('stocks', [])[:5]
-    us_stocks = us_data.get('stocks', [])[:5]
+    # 推送全部股票，不按 TOP5 限制
+    hk_stocks = hk_data.get('stocks', [])
+    us_stocks = us_data.get('stocks', [])
     hk_time = hk_data.get('update_time', 'N/A')
     us_time = us_data.get('update_time', 'N/A')
     
     # 构建 Markdown 消息
     lines = [
         f"📊 **每日股票监控看板** ({datetime.now().strftime('%Y-%m-%d')})",
+        f"共 {len(hk_stocks)} 只港股 | {len(us_stocks)} 只美股",
         "",
         "═" * 40,
         "",
-        "🇭🇰 **港股 TOP5**",
+        f"🇭🇰 **港股监控** ({len(hk_stocks)}只)",
         ""
     ]
     
     for i, stock in enumerate(hk_stocks, 1):
-        f = stock.get('fundamentals', {})
-        lines.append(f"{i}. **{stock['name']}** `{stock['symbol']}`")
-        lines.append(f"   得分：{stock['score']} | {stock['signal']}")
-        lines.append(f"   现价：HK$ {stock['current']} ({stock['change']:+.2f}%)")
-        lines.append(f"   行业：{f.get('sector', 'N/A')} | PE: {f.get('pe', 'N/A')} | PB: {f.get('pb', 'N/A')}")
-        lines.append(f"   市值：{f.get('market_cap', 'N/A')} | 股息：{f.get('dividend', 'N/A')}")
-        lines.append(f"   52 周：{stock['low_52w']} ~ {stock['high_52w']} (距高点{stock['pct_from_high']:+.1f}%)")
+        lines.append(f"{i}. {format_stock_line(stock, 'HK$ ')}")
         lines.append("")
     
     lines.extend([
         "═" * 40,
         "",
-        "🇺🇸 **美股 TOP5**",
+        f"🇺🇸 **美股监控** ({len(us_stocks)}只)",
         ""
     ])
     
     for i, stock in enumerate(us_stocks, 1):
-        f = stock.get('fundamentals', {})
-        lines.append(f"{i}. **{stock['name']}** `{stock['symbol']}`")
-        lines.append(f"   得分：{stock['score']} | {stock['signal']}")
-        lines.append(f"   现价：${stock['current']} ({stock['change']:+.2f}%)")
-        lines.append(f"   行业：{f.get('sector', 'N/A')} | PE: {f.get('pe', 'N/A')} | PB: {f.get('pb', 'N/A')}")
-        lines.append(f"   市值：{f.get('market_cap', 'N/A')} | 股息：{f.get('dividend', 'N/A')}")
-        lines.append(f"   52 周：{stock['low_52w']} ~ {stock['high_52w']} (距高点{stock['pct_from_high']:+.1f}%)")
+        lines.append(f"{i}. {format_stock_line(stock, '$')}")
         lines.append("")
     
     lines.extend([
