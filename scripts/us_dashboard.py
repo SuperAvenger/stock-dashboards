@@ -202,15 +202,11 @@ def get_fundamentals(symbol, name, current_price):
     """获取基本面数据（模拟）"""
     fundamentals_db = {
         'NVDA': {'pe': 65.2, 'pb': 45.8, 'market_cap': '3.2 万亿', 'sector': 'AI 芯片', 'dividend': '0.03%'},
-        'AAPL': {'pe': 28.5, 'pb': 42.1, 'market_cap': '3.5 万亿', 'sector': '消费电子', 'dividend': '0.45%'},
-        'MSFT': {'pe': 32.8, 'pb': 12.5, 'market_cap': '3.1 万亿', 'sector': '软件', 'dividend': '0.75%'},
-        'GOOGL': {'pe': 24.5, 'pb': 6.2, 'market_cap': '2.0 万亿', 'sector': '互联网', 'dividend': '0.0%'},
-        'AMZN': {'pe': 58.2, 'pb': 8.5, 'market_cap': '2.2 万亿', 'sector': '电商/云', 'dividend': '0.0%'},
-        'META': {'pe': 28.2, 'pb': 8.8, 'market_cap': '1.5 万亿', 'sector': '社交媒体', 'dividend': '0.35%'},
+        'TSM': {'pe': 28.5, 'pb': 5.2, 'market_cap': '0.9 万亿', 'sector': '半导体代工', 'dividend': '1.5%'},
+        'CRCL': {'pe': 'N/A', 'pb': 2.8, 'market_cap': '0.03 万亿', 'sector': '稳定币', 'dividend': '0.0%'},
         'TSLA': {'pe': 72.5, 'pb': 12.8, 'market_cap': '0.8 万亿', 'sector': '新能源汽车', 'dividend': '0.0%'},
-        'AMD': {'pe': 48.5, 'pb': 3.8, 'market_cap': '0.7 万亿', 'sector': '半导体', 'dividend': '0.0%'},
-        'NFLX': {'pe': 42.8, 'pb': 12.5, 'market_cap': '0.4 万亿', 'sector': '流媒体', 'dividend': '0.0%'},
-        'AVGO': {'pe': 35.2, 'pb': 15.8, 'market_cap': '0.8 万亿', 'sector': '半导体', 'dividend': '1.8%'},
+        'GOOGL': {'pe': 24.5, 'pb': 6.2, 'market_cap': '2.0 万亿', 'sector': '互联网', 'dividend': '0.0%'},
+        'BABA': {'pe': 12.5, 'pb': 1.8, 'market_cap': '2.1 万亿', 'sector': '电商', 'dividend': '0.0%'},
     }
     
     base = fundamentals_db.get(symbol, {})
