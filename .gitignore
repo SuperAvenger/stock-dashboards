@@ -6,11 +6,6 @@ __pycache__/
 venv/
 .env
 
-# Output
-output/*.html
-output/*.json
-!output/.gitkeep
-
 # IDE
 .vscode/
 .idea/

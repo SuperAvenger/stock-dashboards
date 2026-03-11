@@ -78,8 +78,8 @@ def push_to_feishu(hk_data, us_data):
         "═" * 40,
         "",
         "🔗 **查看详细看板:**",
-        f"🇭🇰 [港股看板](https://SuperAvenger.github.io/stock-dashboards/hk-dashboard.html)",
-        f"🇺🇸 [美股看板](https://SuperAvenger.github.io/stock-dashboards/us-dashboard.html)",
+        f"🇭🇰 港股看板：https://SuperAvenger.github.io/stock-dashboards/hk-dashboard.html",
+        f"🇺🇸 美股看板：https://SuperAvenger.github.io/stock-dashboards/us-dashboard.html",
         "",
         f"_更新时间：{hk_time}_"
     ])

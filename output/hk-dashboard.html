@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🇭🇰 港股监控看板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        header h1 {
+            font-size: 2em;
+            background: linear-gradient(90deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .update-time { color: #9ca3af; margin-top: 10px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .stock-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .stock-card:hover { transform: translateY(-4px); }
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .stock-name { font-weight: bold; font-size: 1.1em; }
+        .stock-symbol { color: #9ca3af; }
+        .stock-price {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .price { font-size: 1.8em; font-weight: bold; }
+        .change { font-size: 1.1em; }
+        .change.positive { color: #22c55e; }
+        .change.negative { color: #ef4444; }
+        .stock-score {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .score-label { color: #9ca3af; }
+        .score-value { font-weight: bold; font-size: 1.3em; }
+        .signal { margin-left: auto; }
+        .stock-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇭🇰 港股监控看板</h1>
+            <div class="update-time">更新时间：2026-03-11 12:17:56</div>
+        </header>
+        <div class="grid">
+            
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">美团</span>
+                <span class="stock-symbol">03690.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 97.82</span>
+                <span class="change positive">
+                    +3.56%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">65分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：137.26</div>
+                <div>52 周低：65.06</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">中芯国际</span>
+                <span class="stock-symbol">00981.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 141.19</span>
+                <span class="change negative">
+                    -0.30%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">65分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：182.5</div>
+                <div>52 周低：88.15</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">阿里巴巴</span>
+                <span class="stock-symbol">09988.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 187.16</span>
+                <span class="change negative">
+                    -0.14%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">60分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：345.1</div>
+                <div>52 周低：168.33</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">腾讯控股</span>
+                <span class="stock-symbol">00700.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 582.02</span>
+                <span class="change positive">
+                    +0.49%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">60分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：697.29</div>
+                <div>52 周低：284.12</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">小米集团</span>
+                <span class="stock-symbol">01810.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 161.95</span>
+                <span class="change negative">
+                    -4.44%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">60分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：174.57</div>
+                <div>52 周低：90.53</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">携程</span>
+                <span class="stock-symbol">09961.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 149.8</span>
+                <span class="change positive">
+                    +2.18%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">60分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：345.68</div>
+                <div>52 周低：127.88</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">比亚迪股份</span>
+                <span class="stock-symbol">01211.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 257.55</span>
+                <span class="change positive">
+                    +0.56%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">60分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：370.22</div>
+                <div>52 周低：220.36</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">快手</span>
+                <span class="stock-symbol">01024.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 86.81</span>
+                <span class="change negative">
+                    -4.90%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">50分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：155.81</div>
+                <div>52 周低：64.95</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #f59e0b">
+            <div class="stock-header">
+                <span class="stock-name">京东</span>
+                <span class="stock-symbol">09618.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 150.94</span>
+                <span class="change negative">
+                    -4.57%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #f59e0b">50分</span>
+                <span class="signal">⚠️ 观望</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：191.27</div>
+                <div>52 周低：120.61</div>
+            </div>
+        </div>
+        
+        <div class="stock-card" style="border-left: 4px solid #ef4444">
+            <div class="stock-header">
+                <span class="stock-name">网易</span>
+                <span class="stock-symbol">09999.HK</span>
+            </div>
+            <div class="stock-price">
+                <span class="price">HK$ 123.03</span>
+                <span class="change positive">
+                    +0.03%
+                </span>
+            </div>
+            <div class="stock-score">
+                <span class="score-label">得分</span>
+                <span class="score-value" style="color: #ef4444">30分</span>
+                <span class="signal">❌ 谨慎</span>
+            </div>
+            <div class="stock-metrics">
+                <div>52 周高：167.64</div>
+                <div>52 周低：105.41</div>
+            </div>
+        </div>
+        
+        </div>
+    </div>
+</body>
+</html>
