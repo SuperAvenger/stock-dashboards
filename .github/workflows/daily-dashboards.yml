@@ -1,0 +1,47 @@
+name: Daily Stock Dashboards
+
+on:
+  schedule:
+    # 每天早上 7:00 北京时间 (UTC 23:00)
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  generate-dashboards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pandas numpy requests
+
+      - name: Generate HK Dashboard
+        env:
+          LONGPORT_APP_KEY: ${{ secrets.LONGPORT_APP_KEY }}
+          LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
+        run: python scripts/hk_dashboard.py
+
+      - name: Generate US Dashboard
+        env:
+          LONGPORT_APP_KEY: ${{ secrets.LONGPORT_APP_KEY }}
+          LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
+        run: python scripts/us_dashboard.py
+
+      - name: Push to Feishu
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: python scripts/push_to_feishu.py
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./output
+          force_orphan: true
