@@ -57,7 +57,7 @@ def get_kline(symbol: str, days: int = 200):
         payload = {
             'symbol': symbol,
             'period': 'D',
-            'rehab_type': 'FRH',
+            'rehab_type': 'NONE',
             'count': days
         }
         
