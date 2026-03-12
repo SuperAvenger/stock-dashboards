@@ -64,6 +64,42 @@ def get_kline(symbol: str, days: int = 200):
     return generate_mock_kline(symbol, days)
 
 
+def get_realtime_quote(symbol: str):
+    """获取实时行情"""
+    if not LONGPORT_ACCESS_TOKEN:
+        return None
+    
+    try:
+        url = f"{LONGPORT_API_BASE}/quote/quote"
+        headers = {
+            'Authorization': f'Bearer {LONGPORT_ACCESS_TOKEN}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'symbols': [symbol],
+        }
+        
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('code') == 0 and data.get('data'):
+                quotes = data['data']['quote']
+                if symbol in quotes:
+                    q = quotes[symbol]
+                    return {
+                        'last_done': float(q.get('last_done', 0)),
+                        'change_percent': float(q.get('change_percent', 0)),
+                        'high': float(q.get('high', 0)),
+                        'low': float(q.get('low', 0)),
+                        'open': float(q.get('open', 0)),
+                        'prev_close': float(q.get('prev_close', 0)),
+                    }
+    except Exception as e:
+        print(f"⚠️ 获取实时行情失败 {symbol}: {e}")
+    
+    return None
+
+
 class KlineData:
     def __init__(self, candle):
         self.timestamp = candle.get('time', '')
@@ -167,9 +203,18 @@ def analyze_stock(symbol, name):
     if df is None or len(df) < 30:
         return None
     
-    current_price = df['close'].iloc[-1]
-    prev_price = df['close'].iloc[-2]
-    pct_change = ((current_price - prev_price) / prev_price) * 100
+    # 优先使用实时行情
+    realtime = get_realtime_quote(symbol)
+    if realtime and realtime['last_done'] > 0:
+        current_price = realtime['last_done']
+        pct_change = realtime['change_percent']
+        prev_close = realtime['prev_close']
+    else:
+        # 回退到 K 线数据
+        current_price = df['close'].iloc[-1]
+        prev_price = df['close'].iloc[-2]
+        pct_change = ((current_price - prev_price) / prev_price) * 100
+        prev_close = prev_price
     
     high_52w = df['high'].max()
     low_52w = df['low'].min()
@@ -206,7 +251,8 @@ def analyze_stock(symbol, name):
         'ma_fast': round(ma_fast, 2),
         'ma_slow': round(ma_slow, 2),
         'rsi': round(rsi, 1),
-        'price_history': price_history
+        'price_history': price_history,
+        'prev_close': round(prev_close, 2) if prev_close else None
     }
 
 
