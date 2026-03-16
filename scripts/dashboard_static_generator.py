@@ -958,14 +958,14 @@ def main():
     # 归档到 data_archive (按日期，仅本地环境)
     if not os.environ.get('GITHUB_ACTIONS'):
         archive_dir = Path('/home/venger/projects/ricequant/data_archive')
-    archive_dir.mkdir(exist_ok=True)
-    month_dir = archive_dir / datetime.now().strftime('%Y-%m')
-    month_dir.mkdir(exist_ok=True)
-    
-    archive_path = month_dir / f"{datetime.now().strftime('%Y-%m-%d')}_hk.json"
-    with open(archive_path, 'w', encoding='utf-8') as f:
-        json.dump(stocks_serializable, f, indent=2, ensure_ascii=False)
-    print(f"   已归档：{archive_path}")
+        archive_dir.mkdir(exist_ok=True)
+        month_dir = archive_dir / datetime.now().strftime('%Y-%m')
+        month_dir.mkdir(exist_ok=True)
+        
+        archive_path = month_dir / f"{datetime.now().strftime('%Y-%m-%d')}_hk.json"
+        with open(archive_path, 'w', encoding='utf-8') as f:
+            json.dump(stocks_serializable, f, indent=2, ensure_ascii=False)
+        print(f"   已归档：{archive_path}")
 
 if __name__ == '__main__':
     main()

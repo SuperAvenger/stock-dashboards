@@ -2,10 +2,23 @@
 """
 长桥简易客户端 - 修复 K 线获取问题
 支持环境变量（GitHub Secrets）和本地配置文件
+
+修复签名问题：长桥 Python SDK 的 JSON 序列化格式与 API 期望不一致
+需要强制使用 ': ' 和 ', ' 作为分隔符（与 Python 默认一致）
 """
 
 import os
+import json
 from pathlib import Path
+
+# 修复 JSON 序列化格式（签名问题）
+# 长桥 API 期望的 JSON 格式：键值之间有固定的空格
+_original_dumps = json.dumps
+def _fixed_dumps(obj, **kwargs):
+    # 强制使用标准格式：sort_keys=False, separators=(', ', ': ')
+    return _original_dumps(obj, separators=(', ', ': '), **kwargs)
+json.dumps = _fixed_dumps
+
 from longport.openapi import Config, QuoteContext, Period
 
 # 配置文件路径（本地开发用）
