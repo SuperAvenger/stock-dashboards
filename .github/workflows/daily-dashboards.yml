@@ -25,14 +25,16 @@ jobs:
       - name: Generate HK Dashboard (Pro Version)
         env:
           LONGPORT_APP_KEY: ${{ secrets.LONGPORT_APP_KEY }}
+          LONGPORT_APP_SECRET: ${{ secrets.LONGPORT_APP_SECRET }}
           LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
-        run: python scripts/hk_dashboard_pro.py
+        run: python scripts/dashboard_static_generator.py
 
       - name: Generate US Dashboard (Pro Version)
         env:
           LONGPORT_APP_KEY: ${{ secrets.LONGPORT_APP_KEY }}
+          LONGPORT_APP_SECRET: ${{ secrets.LONGPORT_APP_SECRET }}
           LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
-        run: python scripts/us_dashboard_pro.py
+        run: python scripts/dashboard_generator_us.py
 
       - name: Push to Feishu
         env:

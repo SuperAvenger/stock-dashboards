@@ -1,0 +1,36 @@
+# 阿里巴巴 (09988.HK) 手动数据输入模板
+# 更新频率：每周一次
+# 数据来源：富途牛牛/HKEX 披露易
+
+# 分析师评级 (1-5 分：5=买入，4=增持，3=中性，2=减持，1=卖出)
+analyst_rating,3.2
+
+# 平均目标价 (HKD)
+target_price,145.00
+
+# 分析师数量
+num_analysts,18
+
+# 盈利预测 (下一年 EPS 预测)
+next_year_eps,8.50
+
+# 盈利增长率预测 (%)
+earnings_growth_forecast,12.5
+
+# 卖空比例 (%)
+short_ratio,8.5
+
+# 内部人净买入股数 (正=买入，负=卖出)
+insider_net_shares,50000
+
+# 最后更新日期
+last_update,2026-03-05
+
+# 数据来源说明
+# analyst_rating: 富途牛牛 - 研报评级
+# target_price: 富途牛牛 - 平均目标价
+# num_analysts: 富途牛牛 - 覆盖分析师数量
+# next_year_eps: 富途牛牛 - 一致预期 EPS
+# earnings_growth_forecast: 富途牛牛 - 预期增长率
+# short_ratio: HKEX 披露易 - 卖空比例
+# insider_net_shares: HKEX 披露易 - 内部人净交易
