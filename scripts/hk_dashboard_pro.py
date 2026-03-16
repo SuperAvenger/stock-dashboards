@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 港股监控看板 - 专业机构版 (GitHub Actions 适配)
-数据源：长桥 Python SDK | 参考华尔街/彭博终端设计
+数据源：长桥 Python SDK
 """
 
 import os
@@ -11,14 +11,10 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
-
-# 添加长桥 SDK 路径
-sys.path.insert(0, '/home/venger/projects/alibaba_monitor')
-from longport_simple_client import load_config, get_kline
-from longport.openapi import Config, QuoteContext
+from longport.openapi import Config, QuoteContext, Period, AdjustType
 
 SCRIPT_DIR = Path(__file__).parent
-CONFIG_FILE = SCRIPT_DIR.parent / 'config' / 'stocks.json'
+CONFIG_FILE = SCRIPT_DIR.parent / 'config' / 'longbridge.conf'
 OUTPUT_DIR = SCRIPT_DIR.parent / 'output'
 
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -41,31 +37,46 @@ MONITOR_STOCKS = {
 FAST_MA = 10
 SLOW_MA = 30
 
-# 全局 QuoteContext 缓存
-_quote_ctx = None
+
+def load_config():
+    """加载配置文件"""
+    config = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip()
+    # 也支持从环境变量读取
+    if not config.get('ACCESS_TOKEN'):
+        config['APP_KEY'] = os.environ.get('LONGPORT_APP_KEY', '')
+        config['APP_SECRET'] = os.environ.get('LONGPORT_APP_SECRET', '')
+        config['ACCESS_TOKEN'] = os.environ.get('LONGPORT_ACCESS_TOKEN', '')
+    return config
+
 
 def get_quote_context():
-    """获取 QuoteContext 单例"""
-    global _quote_ctx
-    if _quote_ctx is None:
-        config = load_config()
-        cfg = Config(
-            app_key=config.get('APP_KEY', ''),
-            app_secret=config.get('APP_SECRET', ''),
-            access_token=config.get('ACCESS_TOKEN', '')
-        )
-        _quote_ctx = QuoteContext(cfg)
-    return _quote_ctx
+    """获取 QuoteContext"""
+    config = load_config()
+    cfg = Config(
+        app_key=config.get('APP_KEY', ''),
+        app_secret=config.get('APP_SECRET', ''),
+        access_token=config.get('ACCESS_TOKEN', '')
+    )
+    return QuoteContext(cfg)
 
 
-class KlineData:
-    def __init__(self, candle):
-        self.timestamp = candle.timestamp if hasattr(candle, 'timestamp') else candle.get('time', '')
-        self.open = float(candle.open) if hasattr(candle, 'open') else float(candle.get('open', 0))
-        self.high = float(candle.high) if hasattr(candle, 'high') else float(candle.get('high', 0))
-        self.low = float(candle.low) if hasattr(candle, 'low') else float(candle.get('low', 0))
-        self.close = float(candle.close) if hasattr(candle, 'close') else float(candle.get('close', 0))
-        self.volume = float(candle.volume) if hasattr(candle, 'volume') else float(candle.get('volume', 0))
+def get_kline(symbol: str, count: int = 200):
+    """获取 K 线数据 - 使用长桥 SDK"""
+    try:
+        quote_ctx = get_quote_context()
+        kline = quote_ctx.candlesticks(symbol, Period.Day, count, AdjustType.NoAdjust)
+        if kline:
+            return list(kline)
+    except Exception as e:
+        print(f"⚠️ 获取 K 线失败 {symbol}: {e}")
+    return []
 
 
 def get_realtime_quote(symbol: str):
@@ -89,14 +100,12 @@ def get_realtime_quote(symbol: str):
 
 
 def get_stock_data(symbol: str):
-    """获取股票数据 (K 线 + 实时行情)"""
-    # 获取 K 线数据 (使用 longport_simple_client)
+    """获取股票数据"""
     kline = get_kline(symbol, count=200)
     if not kline:
         print(f"⚠️ 无法获取 {symbol} K 线数据")
         return None
     
-    # 转换为 DataFrame
     df = pd.DataFrame([{
         'date': c.timestamp,
         'open': float(c.open),
@@ -131,7 +140,6 @@ def calculate_score(df, current_price):
     """计算综合评分 (0-100)"""
     score = 50
     
-    # 均线评分 (30 分)
     ma10 = df['close'].rolling(10).mean().iloc[-1]
     ma30 = df['close'].rolling(30).mean().iloc[-1]
     if current_price > ma10 > ma30:
@@ -143,7 +151,6 @@ def calculate_score(df, current_price):
     elif current_price < ma10:
         score -= 10
     
-    # RSI 评分 (20 分)
     rsi = calculate_rsi(df['close']).iloc[-1]
     if 40 <= rsi <= 60:
         score += 5
@@ -152,14 +159,12 @@ def calculate_score(df, current_price):
     elif rsi > 70:
         score -= 15
     
-    # MACD 评分 (20 分)
     macd, macd_signal_line = calculate_macd(df['close'])
     if macd.iloc[-1] > macd_signal_line.iloc[-1]:
         score += 15
     else:
         score -= 10
     
-    # 52 周位置评分 (30 分)
     high_52w = df['high'].max()
     low_52w = df['low'].min()
     pct_position = (current_price - low_52w) / (high_52w - low_52w) * 100 if high_52w > low_52w else 50
@@ -174,7 +179,6 @@ def calculate_score(df, current_price):
 
 
 def get_signal(score):
-    """根据评分生成信号"""
     if score >= 70:
         return "✅ 强烈买入", "green"
     elif score >= 60:
@@ -193,14 +197,12 @@ def analyze_stock(symbol, name):
     if df is None or len(df) < 30:
         return None
     
-    # 优先使用实时行情
     realtime = get_realtime_quote(symbol)
     if realtime and realtime['last_done'] > 0:
         current_price = realtime['last_done']
         pct_change = realtime['change_percent']
         prev_close = realtime['prev_close']
     else:
-        # 回退到 K 线数据
         current_price = df['close'].iloc[-1]
         prev_price = df['close'].iloc[-2] if len(df) > 1 else current_price
         pct_change = ((current_price - prev_price) / prev_price) * 100
@@ -250,7 +252,6 @@ def analyze_stock(symbol, name):
 
 
 def generate_html(stocks_data, update_time):
-    """生成 HTML 看板"""
     stocks_json = json.dumps(stocks_data, ensure_ascii=False)
     
     html = f'''<!DOCTYPE html>
@@ -344,7 +345,6 @@ stocks.forEach(stock => {{
     `;
     container.appendChild(card);
     
-    // 绘制走势图
     const ctx = document.getElementById(`chart-${{stock.symbol}}`).getContext('2d');
     new Chart(ctx, {{
         type: 'line',
@@ -390,14 +390,12 @@ def main():
     
     update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
-    # 生成 HTML
     html = generate_html(stocks_data, update_time)
     output_file = OUTPUT_DIR / 'hk-dashboard.html'
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"\n✅ HTML 已保存：{output_file}")
     
-    # 保存 JSON 数据
     json_file = OUTPUT_DIR / 'hk-data.json'
     with open(json_file, 'w', encoding='utf-8') as f:
         json.dump({

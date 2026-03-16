@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas numpy requests
+          pip install pandas numpy requests longport
 
       - name: Generate HK Dashboard (Pro Version)
         env:

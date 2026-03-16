@@ -11,14 +11,12 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
-
-# 添加长桥 SDK 路径
-sys.path.insert(0, '/home/venger/projects/alibaba_monitor')
-from longport_simple_client import load_config, get_kline
-from longport.openapi import Config, QuoteContext
+from longport.openapi import Config, QuoteContext, Period, AdjustType
 
 SCRIPT_DIR = Path(__file__).parent
+CONFIG_FILE = SCRIPT_DIR.parent / 'config' / 'longbridge.conf'
 OUTPUT_DIR = SCRIPT_DIR.parent / 'output'
+
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # 股票池
@@ -34,35 +32,45 @@ MONITOR_STOCKS = {
 FAST_MA = 10
 SLOW_MA = 30
 
-# 全局 QuoteContext 缓存
-_quote_ctx = None
+
+def load_config():
+    config = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip()
+    if not config.get('ACCESS_TOKEN'):
+        config['APP_KEY'] = os.environ.get('LONGPORT_APP_KEY', '')
+        config['APP_SECRET'] = os.environ.get('LONGPORT_APP_SECRET', '')
+        config['ACCESS_TOKEN'] = os.environ.get('LONGPORT_ACCESS_TOKEN', '')
+    return config
+
 
 def get_quote_context():
-    """获取 QuoteContext 单例"""
-    global _quote_ctx
-    if _quote_ctx is None:
-        config = load_config()
-        cfg = Config(
-            app_key=config.get('APP_KEY', ''),
-            app_secret=config.get('APP_SECRET', ''),
-            access_token=config.get('ACCESS_TOKEN', '')
-        )
-        _quote_ctx = QuoteContext(cfg)
-    return _quote_ctx
+    config = load_config()
+    cfg = Config(
+        app_key=config.get('APP_KEY', ''),
+        app_secret=config.get('APP_SECRET', ''),
+        access_token=config.get('ACCESS_TOKEN', '')
+    )
+    return QuoteContext(cfg)
 
 
-class KlineData:
-    def __init__(self, candle):
-        self.timestamp = candle.timestamp if hasattr(candle, 'timestamp') else candle.get('time', '')
-        self.open = float(candle.open) if hasattr(candle, 'open') else float(candle.get('open', 0))
-        self.high = float(candle.high) if hasattr(candle, 'high') else float(candle.get('high', 0))
-        self.low = float(candle.low) if hasattr(candle, 'low') else float(candle.get('low', 0))
-        self.close = float(candle.close) if hasattr(candle, 'close') else float(candle.get('close', 0))
-        self.volume = float(candle.volume) if hasattr(candle, 'volume') else float(candle.get('volume', 0))
+def get_kline(symbol: str, count: int = 200):
+    try:
+        quote_ctx = get_quote_context()
+        kline = quote_ctx.candlesticks(symbol, Period.Day, count, AdjustType.NoAdjust)
+        if kline:
+            return list(kline)
+    except Exception as e:
+        print(f"⚠️ 获取 K 线失败 {symbol}: {e}")
+    return []
 
 
 def get_realtime_quote(symbol: str):
-    """获取实时行情 - 使用长桥 SDK"""
     try:
         quote_ctx = get_quote_context()
         quotes = quote_ctx.quote([symbol])
@@ -82,7 +90,6 @@ def get_realtime_quote(symbol: str):
 
 
 def get_stock_data(symbol: str):
-    """获取股票数据 (K 线 + 实时行情)"""
     kline = get_kline(symbol, count=200)
     if not kline:
         print(f"⚠️ 无法获取 {symbol} K 线数据")
@@ -119,9 +126,7 @@ def calculate_macd(prices, fast=12, slow=26, signal=9):
 
 
 def calculate_score(df, current_price):
-    """计算综合评分 (0-100)"""
     score = 50
-    
     ma10 = df['close'].rolling(10).mean().iloc[-1]
     ma30 = df['close'].rolling(30).mean().iloc[-1]
     if current_price > ma10 > ma30:
@@ -174,7 +179,6 @@ def get_signal(score):
 
 
 def analyze_stock(symbol, name):
-    """分析单只股票"""
     df = get_stock_data(symbol)
     if df is None or len(df) < 30:
         return None
@@ -235,7 +239,6 @@ def analyze_stock(symbol, name):
 
 def generate_html(stocks_data, update_time):
     stocks_json = json.dumps(stocks_data, ensure_ascii=False)
-    
     html = f'''<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>美股监控看板</title>
 <style>
@@ -270,82 +273,36 @@ h1 {{ color: #333; text-align: center; }}
 <script>
 const stocks = {stocks_json};
 const container = document.getElementById('cards');
-
 stocks.forEach(stock => {{
     const changeClass = stock.change >= 0 ? 'price-up' : 'price-down';
     const changeSign = stock.change >= 0 ? '+' : '';
-    
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
         <div class="card-header">
-            <div>
-                <div class="stock-name">${{stock.name}}</div>
-                <div class="stock-symbol">${{stock.symbol}}</div>
-            </div>
+            <div><div class="stock-name">${{stock.name}}</div><div class="stock-symbol">${{stock.symbol}}</div></div>
             <span class="score" style="background: ${{stock.color}}">${{stock.score}}分</span>
         </div>
-        <div class="price {{changeClass}}">
-            $ ${{stock.current}} <span class="change">{{changeSign}}${{stock.change}}%</span>
-        </div>
+        <div class="price {{changeClass}}">$ ${{stock.current}} <span class="change">{{changeSign}}${{stock.change}}%</span></div>
         <div style="text-align: center; margin: 10px 0;">${{stock.signal}}</div>
         <div class="metrics">
-            <div class="metric">
-                <div class="metric-label">52 周高</div>
-                <div class="metric-value">${{stock.high_52w}}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">52 周低</div>
-                <div class="metric-value">${{stock.low_52w}}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">距高点</div>
-                <div class="metric-value">${{stock.pct_from_high}}%</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">距低点</div>
-                <div class="metric-value">${{stock.pct_from_low}}%</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">MA10</div>
-                <div class="metric-value">${{stock.ma_fast}}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">MA30</div>
-                <div class="metric-value">${{stock.ma_slow}}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">RSI</div>
-                <div class="metric-value">${{stock.rsi}}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">MACD</div>
-                <div class="metric-value">${{stock.macd}}</div>
-            </div>
+            <div class="metric"><div class="metric-label">52 周高</div><div class="metric-value">${{stock.high_52w}}</div></div>
+            <div class="metric"><div class="metric-label">52 周低</div><div class="metric-value">${{stock.low_52w}}</div></div>
+            <div class="metric"><div class="metric-label">距高点</div><div class="metric-value">${{stock.pct_from_high}}%</div></div>
+            <div class="metric"><div class="metric-label">距低点</div><div class="metric-value">${{stock.pct_from_low}}%</div></div>
+            <div class="metric"><div class="metric-label">MA10</div><div class="metric-value">${{stock.ma_fast}}</div></div>
+            <div class="metric"><div class="metric-label">MA30</div><div class="metric-value">${{stock.ma_slow}}</div></div>
+            <div class="metric"><div class="metric-label">RSI</div><div class="metric-value">${{stock.rsi}}</div></div>
+            <div class="metric"><div class="metric-label">MACD</div><div class="metric-value">${{stock.macd}}</div></div>
         </div>
         <canvas class="chart" id="chart-${{stock.symbol}}"></canvas>
     `;
     container.appendChild(card);
-    
     const ctx = document.getElementById(`chart-${{stock.symbol}}`).getContext('2d');
     new Chart(ctx, {{
         type: 'line',
-        data: {{
-            labels: stock.price_history.map(d => d.date.slice(5)),
-            datasets: [{{
-                label: '收盘价',
-                data: stock.price_history.map(d => d.close),
-                borderColor: '#007aff',
-                tension: 0.3,
-                pointRadius: 0
-            }}]
-        }},
-        options: {{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {{ legend: {{ display: false }} }},
-            scales: {{ x: {{ display: false }}, y: {{ beginAtZero: false }} }}
-        }}
+        data: {{ labels: stock.price_history.map(d => d.date.slice(5)), datasets: [{{ label: '收盘价', data: stock.price_history.map(d => d.close), borderColor: '#007aff', tension: 0.3, pointRadius: 0 }}] }},
+        options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ display: false }}, y: {{ beginAtZero: false }} }} }}
     }});
 }});
 </script>
@@ -359,7 +316,6 @@ def main():
     print("=" * 70)
     
     stocks_data = []
-    
     for symbol, name in MONITOR_STOCKS.items():
         print(f"\n分析 {name} ({symbol})...")
         result = analyze_stock(symbol, name)
@@ -380,10 +336,7 @@ def main():
     
     json_file = OUTPUT_DIR / 'us-data.json'
     with open(json_file, 'w', encoding='utf-8') as f:
-        json.dump({
-            'stocks': stocks_data,
-            'update_time': update_time
-        }, f, ensure_ascii=False, indent=2)
+        json.dump({'stocks': stocks_data, 'update_time': update_time}, f, ensure_ascii=False, indent=2)
     print(f"✅ 数据已保存：{json_file}")
     
     print(f"\n共 {len(stocks_data)} 只股票")
