@@ -1,45 +1,65 @@
 {
-  "update_time": "2026-03-17 12:39:12",
+  "update_time": "2026-03-17 22:03:04",
   "stocks": [
     {
-      "total_score": 50,
-      "rating": "数据不足",
-      "rating_color": "#6b7280",
-      "action": "观望",
+      "total_score": 55,
+      "rating": "中性",
+      "rating_color": "#eab308",
+      "action": "持有 30-40%",
       "dimensions": {
         "valuation": {
-          "score": 50,
+          "score": 52,
           "grade": "C",
           "weight": 30
         },
         "growth": {
-          "score": 50,
-          "grade": "C",
+          "score": 75,
+          "grade": "B",
           "weight": 25
         },
         "quality": {
-          "score": 50,
+          "score": 48,
           "grade": "C",
           "weight": 20
         },
         "sentiment": {
-          "score": 50,
+          "score": 55,
           "grade": "C",
           "weight": 15
         },
         "technical": {
-          "score": 50,
-          "grade": "C",
+          "score": 30,
+          "grade": "D",
           "weight": 10
         }
       },
-      "fundamentals": {},
-      "technical": {},
+      "fundamentals": {
+        "pe_ttm": 18.71,
+        "pb": 2.27,
+        "roe": null,
+        "dividend_yield": 1.96,
+        "eps_ttm": 7.19,
+        "bps": 59.21
+      },
+      "technical": {
+        "rsi": 32.0,
+        "macd": -6.1495,
+        "ma_fast": 131.5,
+        "ma_slow": 146.08,
+        "atr": 5.13,
+        "signal": "死叉"
+      },
       "price_data": {
-        "current": 137.3
+        "current": 134.6,
+        "high_52w": 186.2,
+        "low_52w": 101.8,
+        "pct_from_high": -27.7,
+        "pct_from_low": 32.2
       },
       "reasons": [
-        "数据不足，无法进行完整分析"
+        "估值合理，具备配置价值",
+        "盈利能力偏弱，需观察改善",
+        "技术面偏弱，趋势向下"
       ],
       "symbol": "09988.HK",
       "name": "阿里巴巴",
@@ -162,7 +182,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 137.3
+          "close": 134.6
         }
       ]
     },
@@ -173,7 +193,7 @@
       "action": "建仓 50-60%",
       "dimensions": {
         "valuation": {
-          "score": 56,
+          "score": 57,
           "grade": "C",
           "weight": 30
         },
@@ -199,27 +219,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 21.33,
-        "pb": 3.97,
+        "pe_ttm": 20.98,
+        "pb": 3.9,
         "roe": null,
         "dividend_yield": 4.54,
         "eps_ttm": 26.21,
         "bps": 140.98
       },
       "technical": {
-        "rsi": 66.7,
-        "macd": -3.4945,
-        "ma_fast": 536.0,
-        "ma_slow": 540.87,
-        "atr": 18.91,
+        "rsi": 61.7,
+        "macd": -4.2125,
+        "ma_fast": 535.1,
+        "ma_slow": 540.57,
+        "atr": 19.44,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 559.0,
+        "current": 550.0,
         "high_52w": 683.0,
         "low_52w": 489.6,
-        "pct_from_high": -18.2,
-        "pct_from_low": 14.2
+        "pct_from_high": -19.5,
+        "pct_from_low": 12.3
       },
       "reasons": [
         "估值合理，具备配置价值",
@@ -348,7 +368,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 559.0
+          "close": 550.0
         }
       ]
     },
@@ -359,7 +379,7 @@
       "action": "持有 30-40%",
       "dimensions": {
         "valuation": {
-          "score": 45,
+          "score": 46,
           "grade": "C",
           "weight": 30
         },
@@ -385,27 +405,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": -230.44,
-        "pb": 2.74,
+        "pe_ttm": -226.75,
+        "pb": 2.69,
         "roe": null,
         "dividend_yield": null,
         "eps_ttm": -0.35,
         "bps": 29.7
       },
       "technical": {
-        "rsi": 46.9,
-        "macd": -3.3395,
-        "ma_fast": 77.42,
-        "ma_slow": 83.3,
+        "rsi": 43.7,
+        "macd": -3.4432,
+        "ma_fast": 77.29,
+        "ma_slow": 83.26,
         "atr": 3.02,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 81.3,
+        "current": 80.0,
         "high_52w": 149.8,
         "low_52w": 73.6,
-        "pct_from_high": -45.7,
-        "pct_from_low": 10.5
+        "pct_from_high": -46.6,
+        "pct_from_low": 8.7
       },
       "reasons": [
         "估值偏高，需等待更好买点",
@@ -533,7 +553,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 81.3
+          "close": 80.0
         }
       ]
     },
@@ -544,7 +564,7 @@
       "action": "建仓 50-60%",
       "dimensions": {
         "valuation": {
-          "score": 48,
+          "score": 49,
           "grade": "C",
           "weight": 30
         },
@@ -570,27 +590,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 19.45,
-        "pb": 3.23,
+        "pe_ttm": 19.13,
+        "pb": 3.18,
         "roe": null,
         "dividend_yield": null,
         "eps_ttm": 1.85,
         "bps": 11.12
       },
       "technical": {
-        "rsi": 52.0,
-        "macd": -0.4527,
-        "ma_fast": 33.6,
-        "ma_slow": 34.71,
+        "rsi": 48.6,
+        "macd": -0.5006,
+        "ma_fast": 33.54,
+        "ma_slow": 34.69,
         "atr": 1.31,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 35.96,
+        "current": 35.36,
         "high_52w": 61.45,
         "low_52w": 31.2,
-        "pct_from_high": -41.5,
-        "pct_from_low": 15.3
+        "pct_from_high": -42.5,
+        "pct_from_low": 13.3
       },
       "reasons": [
         "估值偏高，需等待更好买点",
@@ -718,7 +738,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 35.96
+          "close": 35.36
         }
       ]
     },
@@ -755,27 +775,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 7.32,
-        "pb": 1.43,
+        "pe_ttm": 7.29,
+        "pb": 1.42,
         "roe": null,
         "dividend_yield": 2.33,
         "eps_ttm": 56.4,
         "bps": 289.35
       },
       "technical": {
-        "rsi": 49.6,
-        "macd": -14.502,
-        "ma_fast": 408.9,
-        "ma_slow": 425.73,
-        "atr": 12.89,
+        "rsi": 49.0,
+        "macd": -14.6297,
+        "ma_fast": 408.74,
+        "ma_slow": 425.68,
+        "atr": 12.99,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 412.8,
+        "current": 411.2,
         "high_52w": 613.0,
         "low_52w": 388.2,
-        "pct_from_high": -32.7,
-        "pct_from_low": 6.3
+        "pct_from_high": -32.9,
+        "pct_from_low": 5.9
       },
       "reasons": [
         "估值合理，具备配置价值",
@@ -903,12 +923,12 @@
         },
         {
           "date": "2026-03-17",
-          "close": 412.8
+          "close": 411.2
         }
       ]
     },
     {
-      "total_score": 63,
+      "total_score": 65,
       "rating": "推荐",
       "rating_color": "#84cc16",
       "action": "建仓 50-60%",
@@ -934,38 +954,38 @@
           "weight": 15
         },
         "technical": {
-          "score": 30,
-          "grade": "D",
+          "score": 50,
+          "grade": "C",
           "weight": 10
         }
       },
       "fundamentals": {
-        "pe_ttm": 13.92,
-        "pb": 3.24,
+        "pe_ttm": 13.7,
+        "pb": 3.19,
         "roe": null,
         "dividend_yield": 0.46,
         "eps_ttm": 4.37,
         "bps": 18.78
       },
       "technical": {
-        "rsi": 30.7,
-        "macd": -3.0016,
-        "ma_fast": 60.36,
-        "ma_slow": 66.14,
-        "atr": 2.29,
+        "rsi": 26.3,
+        "macd": -3.0773,
+        "ma_fast": 60.26,
+        "ma_slow": 66.1,
+        "atr": 2.31,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 60.8,
+        "current": 59.85,
         "high_52w": 92.6,
         "low_52w": 50.05,
-        "pct_from_high": -34.3,
-        "pct_from_low": 21.5
+        "pct_from_high": -35.4,
+        "pct_from_low": 19.6
       },
       "reasons": [
         "估值偏高，需等待更好买点",
         "ROE 优异，盈利能力强",
-        "技术面偏弱，趋势向下"
+        "技术面中性，震荡整理"
       ],
       "symbol": "01024.HK",
       "name": "快手",
@@ -1088,7 +1108,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 60.8
+          "close": 59.85
         }
       ]
     },
@@ -1125,7 +1145,7 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 14.72,
+        "pe_ttm": 14.64,
         "pb": 1.28,
         "roe": null,
         "dividend_yield": 3.98,
@@ -1133,19 +1153,19 @@
         "bps": 87.79
       },
       "technical": {
-        "rsi": 60.3,
-        "macd": 0.3126,
-        "ma_fast": 106.74,
-        "ma_slow": 106.88,
+        "rsi": 59.5,
+        "macd": 0.2647,
+        "ma_fast": 106.68,
+        "ma_slow": 106.86,
         "atr": 3.51,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 112.7,
+        "current": 112.1,
         "high_52w": 143.8,
         "low_52w": 95.9,
-        "pct_from_high": -21.6,
-        "pct_from_low": 17.5
+        "pct_from_high": -22.0,
+        "pct_from_low": 16.9
       },
       "reasons": [
         "估值极具吸引力，安全边际高",
@@ -1274,12 +1294,12 @@
         },
         {
           "date": "2026-03-17",
-          "close": 112.7
+          "close": 112.1
         }
       ]
     },
     {
-      "total_score": 70,
+      "total_score": 72,
       "rating": "推荐",
       "rating_color": "#84cc16",
       "action": "建仓 50-60%",
@@ -1305,38 +1325,38 @@
           "weight": 15
         },
         "technical": {
-          "score": 50,
-          "grade": "C",
+          "score": 70,
+          "grade": "B",
           "weight": 10
         }
       },
       "fundamentals": {
-        "pe_ttm": 15.92,
-        "pb": 3.35,
+        "pe_ttm": 15.82,
+        "pb": 3.33,
         "roe": null,
         "dividend_yield": 4.65,
         "eps_ttm": 11.81,
         "bps": 56.06
       },
       "technical": {
-        "rsi": 60.6,
-        "macd": -2.8017,
-        "ma_fast": 184.76,
-        "ma_slow": 186.39,
-        "atr": 6.01,
+        "rsi": 59.5,
+        "macd": -2.8974,
+        "ma_fast": 184.64,
+        "ma_slow": 186.35,
+        "atr": 6.12,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 188.0,
+        "current": 186.8,
         "high_52w": 248.0,
         "low_52w": 174.2,
-        "pct_from_high": -24.2,
-        "pct_from_low": 7.9
+        "pct_from_high": -24.7,
+        "pct_from_low": 7.2
       },
       "reasons": [
         "估值合理，具备配置价值",
         "ROE 优异，盈利能力强",
-        "技术面中性，震荡整理",
+        "技术面强势，趋势向上",
         "高股息 (4.6%)，防御性强"
       ],
       "symbol": "09999.HK",
@@ -1460,7 +1480,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 188.0
+          "close": 186.8
         }
       ]
     },
@@ -1472,7 +1492,7 @@
       "dimensions": {
         "valuation": {
           "score": 20,
-          "grade": "F",
+          "grade": "D",
           "weight": 30
         },
         "growth": {
@@ -1497,27 +1517,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 94.02,
-        "pb": 3.0,
+        "pe_ttm": 92.82,
+        "pb": 2.97,
         "roe": null,
         "dividend_yield": null,
         "eps_ttm": 0.67,
         "bps": 20.85
       },
       "technical": {
-        "rsi": 28.4,
-        "macd": -2.3459,
-        "ma_fast": 62.38,
-        "ma_slow": 66.95,
-        "atr": 2.84,
+        "rsi": 26.7,
+        "macd": -2.4098,
+        "ma_fast": 62.3,
+        "ma_slow": 66.92,
+        "atr": 2.9,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 62.65,
+        "current": 61.85,
         "high_52w": 93.5,
         "low_52w": 38.65,
-        "pct_from_high": -33.0,
-        "pct_from_low": 62.1
+        "pct_from_high": -33.9,
+        "pct_from_low": 60.0
       },
       "reasons": [
         "估值泡沫，警惕回调风险",
@@ -1645,7 +1665,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 62.65
+          "close": 61.85
         }
       ]
     },
@@ -1656,7 +1676,7 @@
       "action": "建仓 50-60%",
       "dimensions": {
         "valuation": {
-          "score": 34,
+          "score": 35,
           "grade": "D",
           "weight": 30
         },
@@ -1682,27 +1702,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 23.09,
-        "pb": 4.03,
+        "pe_ttm": 22.68,
+        "pb": 3.96,
         "roe": null,
         "dividend_yield": 1.45,
         "eps_ttm": 4.61,
         "bps": 26.41
       },
       "technical": {
-        "rsi": 61.5,
-        "macd": 1.3279,
-        "ma_fast": 98.12,
-        "ma_slow": 96.5,
-        "atr": 4.63,
+        "rsi": 59.1,
+        "macd": 1.1763,
+        "ma_fast": 97.92,
+        "ma_slow": 96.43,
+        "atr": 4.7,
         "signal": "金叉"
       },
       "price_data": {
-        "current": 106.4,
+        "current": 104.5,
         "high_52w": 418.8,
         "low_52w": 88.5,
-        "pct_from_high": -74.6,
-        "pct_from_low": 20.2
+        "pct_from_high": -75.0,
+        "pct_from_low": 18.1
       },
       "reasons": [
         "估值偏高，需等待更好买点",
@@ -1830,7 +1850,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 106.4
+          "close": 104.5
         }
       ]
     },
@@ -1841,7 +1861,7 @@
       "action": "持有 30-40%",
       "dimensions": {
         "valuation": {
-          "score": 53,
+          "score": 54,
           "grade": "C",
           "weight": 30
         },
@@ -1867,27 +1887,27 @@
         }
       },
       "fundamentals": {
-        "pe_ttm": 35.44,
-        "pb": 1.16,
+        "pe_ttm": 34.94,
+        "pb": 1.14,
         "roe": null,
         "dividend_yield": null,
         "eps_ttm": 0.02,
         "bps": 0.61
       },
       "technical": {
-        "rsi": 32.4,
-        "macd": -0.0587,
+        "rsi": 30.3,
+        "macd": -0.0595,
         "ma_fast": 0.71,
         "ma_slow": 0.84,
         "atr": 0.04,
         "signal": "死叉"
       },
       "price_data": {
-        "current": 0.71,
+        "current": 0.7,
         "high_52w": 1.37,
         "low_52w": 0.67,
-        "pct_from_high": -48.2,
-        "pct_from_low": 6.0
+        "pct_from_high": -48.9,
+        "pct_from_low": 4.5
       },
       "reasons": [
         "估值合理，具备配置价值",
@@ -2015,7 +2035,7 @@
         },
         {
           "date": "2026-03-17",
-          "close": 0.71
+          "close": 0.7
         }
       ]
     }

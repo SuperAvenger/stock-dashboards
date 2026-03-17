@@ -1,92 +1,88 @@
 {
-  "update_time": "2026-03-17 12:40:51",
+  "update_time": "2026-03-17 22:04:51",
   "stocks": [
     {
       "symbol": "NVDA.US",
-      "total_score": 66.4,
+      "total_score": 66.6,
       "signal": "买入",
       "action": "建仓 50-60%",
       "dimensions": {
         "momentum": {
-          "score": 63.6,
+          "score": 62.9,
           "details": {
-            "mom_20d": -0.95,
-            "mom_60d": 7.18,
+            "mom_20d": -2.9,
+            "mom_60d": 4.81,
             "ma_arrangement": 60,
-            "relative_strength": 66.9
+            "relative_strength": 65.9
           }
         },
         "value": {
-          "score": 52.2,
+          "score": 8.2,
           "details": {
-            "pe_ttm": 20.0,
-            "pb": 2.0,
-            "ps_ttm": 3.0,
-            "dividend_yield": 1.0,
-            "source": "Default"
+            "pe_ttm": 37.31,
+            "pb": 28.19,
+            "ps_ttm": 20.53,
+            "dividend_yield": 2.0,
+            "source": "Yahoo Finance"
           }
         },
         "growth": {
-          "score": 70.0,
+          "score": 100.0,
           "details": {
-            "earnings_growth": 10.0,
-            "revenue_growth": 10.0
+            "earnings_growth": 95.6,
+            "revenue_growth": 73.2
           }
         },
         "quality": {
-          "score": 75.0,
+          "score": 92.5,
           "details": {
-            "roe": 15.0,
+            "roe": 101.48,
             "debt_to_equity": 0.5
           }
         },
         "sentiment": {
-          "score": 73.4,
+          "score": 71.4,
           "details": {
-            "volatility_20d": 2.23,
-            "recent_10d_return": 1.76
+            "volatility_20d": 2.22,
+            "recent_10d_return": -0.28
           }
         }
       },
-      "current_price": 183.22,
-      "update_time": "2026-03-17 12:39:36",
+      "current_price": 182.52,
+      "update_time": "2026-03-17 22:03:34",
       "fundamentals": {
-        "pe_ttm": 20.0,
-        "pb": 2.0,
-        "roe": 15.0,
-        "dividend_yield": 1.0,
-        "eps": 10.0,
-        "bps": 91.61
+        "pe_ttm": 37.31,
+        "pb": 28.19,
+        "roe": 101.48,
+        "dividend_yield": 2.0,
+        "eps": 18.66,
+        "bps": 6.47
       },
       "technical": {
-        "rsi_14": 41.2,
-        "ma_10": 182.43,
-        "ma_30": 184.51,
-        "macd": -0.9397,
-        "macd_signal": -0.745,
-        "macd_histogram": -0.1948,
+        "rsi_14": 37.6,
+        "ma_10": 182.68,
+        "ma_30": 184.41,
+        "macd": -0.934,
+        "macd_signal": -0.7828,
+        "macd_histogram": -0.1512,
         "macd_status": "死叉",
-        "atr": 6.45
+        "atr": 6.32
       },
       "week52": {
-        "current_price": 183.22,
+        "current_price": 182.52,
         "high": 207.04,
         "low": 135.13,
-        "pct_from_high": -11.5,
-        "pct_from_low": 35.6,
-        "position": 66.9
+        "pct_from_high": -11.8,
+        "pct_from_low": 35.1,
+        "position": 65.9
       },
       "reasons": [
-        "估值合理",
-        "盈利能力尚可",
+        "估值偏高 (PE=37.3)",
+        "盈利能力强 (ROE=101.5%)",
         "技术面偏弱"
       ],
       "name": "英伟达 (AI 芯片)",
       "price_history": [
-        {
-          "date": "2026-02-02",
-          "close": 185.61
-        },
         {
           "date": "2026-02-03",
           "close": 180.34
@@ -202,95 +198,95 @@
         {
           "date": "2026-03-16",
           "close": 183.22
+        },
+        {
+          "date": "2026-03-17",
+          "close": 182.52
         }
       ]
     },
     {
       "symbol": "TSM.US",
-      "total_score": 66.1,
-      "signal": "买入",
-      "action": "建仓 50-60%",
+      "total_score": 70.7,
+      "signal": "强烈买入",
+      "action": "建仓 60-70%",
       "dimensions": {
         "momentum": {
-          "score": 66.0,
+          "score": 65.8,
           "details": {
-            "mom_20d": -6.58,
-            "mom_60d": 22.84,
+            "mom_20d": -5.61,
+            "mom_60d": 20.12,
             "ma_arrangement": 60,
-            "relative_strength": 75.6
+            "relative_strength": 76.5
           }
         },
         "value": {
-          "score": 52.2,
+          "score": 31.9,
           "details": {
-            "pe_ttm": 20.0,
-            "pb": 2.0,
-            "ps_ttm": 3.0,
-            "dividend_yield": 1.0,
-            "source": "Default"
+            "pe_ttm": 32.95,
+            "pb": 52.24,
+            "ps_ttm": 0.47,
+            "dividend_yield": 104.0,
+            "source": "Yahoo Finance"
           }
         },
         "growth": {
-          "score": 70.0,
+          "score": 96.4,
           "details": {
-            "earnings_growth": 10.0,
-            "revenue_growth": 10.0
+            "earnings_growth": 35.0,
+            "revenue_growth": 20.5
           }
         },
         "quality": {
-          "score": 75.0,
+          "score": 92.5,
           "details": {
-            "roe": 15.0,
+            "roe": 35.06,
             "debt_to_equity": 0.5
           }
         },
         "sentiment": {
-          "score": 67.7,
+          "score": 67.0,
           "details": {
-            "volatility_20d": 2.44,
-            "recent_10d_return": -3.65
+            "volatility_20d": 2.45,
+            "recent_10d_return": -4.33
           }
         }
       },
-      "current_price": 340.23,
-      "update_time": "2026-03-17 12:39:51",
+      "current_price": 341.95,
+      "update_time": "2026-03-17 22:03:46",
       "fundamentals": {
-        "pe_ttm": 20.0,
-        "pb": 2.0,
-        "roe": 15.0,
-        "dividend_yield": 1.0,
-        "eps": 10.0,
-        "bps": 170.12
+        "pe_ttm": 32.95,
+        "pb": 52.25,
+        "roe": 35.06,
+        "dividend_yield": 104.0,
+        "eps": 16.48,
+        "bps": 6.54
       },
       "technical": {
-        "rsi_14": 27.2,
-        "ma_10": 346.89,
-        "ma_30": 356.62,
-        "macd": -2.0297,
-        "macd_signal": 2.2945,
-        "macd_histogram": -4.3242,
+        "rsi_14": 27.0,
+        "ma_10": 345.77,
+        "ma_30": 356.64,
+        "macd": -2.4679,
+        "macd_signal": 1.342,
+        "macd_histogram": -3.8099,
         "macd_status": "死叉",
-        "atr": 12.64
+        "atr": 12.59
       },
       "week52": {
-        "current_price": 340.23,
+        "current_price": 341.95,
         "high": 387.73,
         "low": 193.32,
-        "pct_from_high": -12.3,
-        "pct_from_low": 76.0,
-        "position": 75.6
+        "pct_from_high": -11.8,
+        "pct_from_low": 76.9,
+        "position": 76.5
       },
       "reasons": [
-        "估值合理",
-        "盈利能力尚可",
+        "估值偏高 (PE=33.0)",
+        "盈利能力强 (ROE=35.1%)",
         "技术面超卖"
       ],
       "name": "台积电 (半导体)",
       "price_history": [
-        {
-          "date": "2026-02-02",
-          "close": 341.36
-        },
         {
           "date": "2026-02-03",
           "close": 335.75
@@ -406,22 +402,26 @@
         {
           "date": "2026-03-16",
           "close": 340.23
+        },
+        {
+          "date": "2026-03-17",
+          "close": 341.95
         }
       ]
     },
     {
       "symbol": "CRCL.US",
-      "total_score": 73.6,
+      "total_score": 72.0,
       "signal": "强烈买入",
       "action": "建仓 60-70%",
       "dimensions": {
         "momentum": {
-          "score": 84.0,
+          "score": 82.3,
           "details": {
-            "mom_20d": 104.2,
-            "mom_60d": 58.88,
+            "mom_20d": 97.87,
+            "mom_60d": 54.28,
             "ma_arrangement": 60,
-            "relative_strength": 35.5
+            "relative_strength": 35.0
           }
         },
         "value": {
@@ -449,40 +449,40 @@
           }
         },
         "sentiment": {
-          "score": 87.9,
+          "score": 80.2,
           "details": {
-            "volatility_20d": 8.93,
-            "recent_10d_return": 26.3
+            "volatility_20d": 8.99,
+            "recent_10d_return": 18.7
           }
         }
       },
-      "current_price": 125.83,
-      "update_time": "2026-03-17 12:40:07",
+      "current_price": 124.955,
+      "update_time": "2026-03-17 22:04:01",
       "fundamentals": {
         "pe_ttm": 20.0,
         "pb": 2.0,
         "roe": 15.0,
         "dividend_yield": 1.0,
         "eps": 10.0,
-        "bps": 62.92
+        "bps": 62.48
       },
       "technical": {
-        "rsi_14": 85.7,
-        "ma_10": 111.07,
-        "ma_30": 80.15,
-        "macd": 13.5121,
-        "macd_signal": 10.3037,
-        "macd_histogram": 3.2083,
+        "rsi_14": 80.2,
+        "ma_10": 113.6,
+        "ma_30": 82.36,
+        "macd": 13.9652,
+        "macd_signal": 11.036,
+        "macd_histogram": 2.9291,
         "macd_status": "金叉",
-        "atr": 10.16
+        "atr": 8.81
       },
       "week52": {
-        "current_price": 125.83,
+        "current_price": 124.96,
         "high": 263.45,
         "low": 50.23,
-        "pct_from_high": -52.2,
-        "pct_from_low": 150.5,
-        "position": 35.5
+        "pct_from_high": -52.6,
+        "pct_from_low": 148.8,
+        "position": 35.0
       },
       "reasons": [
         "估值合理",
@@ -491,10 +491,6 @@
       ],
       "name": "Circle (稳定币)",
       "price_history": [
-        {
-          "date": "2026-02-02",
-          "close": 58.86
-        },
         {
           "date": "2026-02-03",
           "close": 56.16
@@ -610,95 +606,95 @@
         {
           "date": "2026-03-16",
           "close": 125.83
+        },
+        {
+          "date": "2026-03-17",
+          "close": 124.96
         }
       ]
     },
     {
       "symbol": "TSLA.US",
-      "total_score": 65.0,
-      "signal": "买入",
-      "action": "建仓 50-60%",
+      "total_score": 27.9,
+      "signal": "减持",
+      "action": "减仓至 10-20%",
       "dimensions": {
         "momentum": {
-          "score": 58.6,
+          "score": 58.2,
           "details": {
-            "mom_20d": -3.67,
-            "mom_60d": -15.34,
+            "mom_20d": -3.57,
+            "mom_60d": -17.95,
             "ma_arrangement": 60,
-            "relative_strength": 54.0
+            "relative_strength": 54.5
           }
         },
         "value": {
-          "score": 52.2,
+          "score": 0.0,
           "details": {
-            "pe_ttm": 20.0,
-            "pb": 2.0,
-            "ps_ttm": 3.0,
-            "dividend_yield": 1.0,
-            "source": "Default"
+            "pe_ttm": 370.66,
+            "pb": 18.11,
+            "ps_ttm": 15.69,
+            "dividend_yield": 0,
+            "source": "Yahoo Finance"
           }
         },
         "growth": {
-          "score": 70.0,
+          "score": -25.2,
           "details": {
-            "earnings_growth": 10.0,
-            "revenue_growth": 10.0
+            "earnings_growth": -60.6,
+            "revenue_growth": -3.1
           }
         },
         "quality": {
-          "score": 75.0,
+          "score": 39.7,
           "details": {
-            "roe": 15.0,
+            "roe": 4.93,
             "debt_to_equity": 0.5
           }
         },
         "sentiment": {
-          "score": 73.0,
+          "score": 69.9,
           "details": {
-            "volatility_20d": 1.88,
-            "recent_10d_return": 0.8
+            "volatility_20d": 1.85,
+            "recent_10d_return": -2.3
           }
         }
       },
-      "current_price": 395.56,
-      "update_time": "2026-03-17 12:40:21",
+      "current_price": 396.617,
+      "update_time": "2026-03-17 22:04:18",
       "fundamentals": {
-        "pe_ttm": 20.0,
-        "pb": 2.0,
-        "roe": 15.0,
-        "dividend_yield": 1.0,
-        "eps": 10.0,
-        "bps": 197.78
+        "pe_ttm": 370.8,
+        "pb": 18.12,
+        "roe": 4.93,
+        "dividend_yield": 0,
+        "eps": 185.4,
+        "bps": 21.89
       },
       "technical": {
-        "rsi_14": 42.3,
-        "ma_10": 398.82,
-        "ma_30": 407.94,
-        "macd": -6.9469,
-        "macd_signal": -7.0005,
-        "macd_histogram": 0.0536,
+        "rsi_14": 37.4,
+        "ma_10": 399.23,
+        "ma_30": 407.1,
+        "macd": -6.7149,
+        "macd_signal": -6.9434,
+        "macd_histogram": 0.2285,
         "macd_status": "金叉",
-        "atr": 13.39
+        "atr": 12.99
       },
       "week52": {
-        "current_price": 395.56,
+        "current_price": 396.62,
         "high": 489.88,
         "low": 284.7,
-        "pct_from_high": -19.3,
-        "pct_from_low": 38.9,
-        "position": 54.0
+        "pct_from_high": -19.0,
+        "pct_from_low": 39.3,
+        "position": 54.5
       },
       "reasons": [
-        "估值合理",
-        "盈利能力尚可",
+        "估值偏高 (PE=370.8)",
+        "盈利能力偏弱 (ROE=4.9%)",
         "技术面偏弱"
       ],
       "name": "特斯拉 (电动车)",
       "price_history": [
-        {
-          "date": "2026-02-02",
-          "close": 421.81
-        },
         {
           "date": "2026-02-03",
           "close": 421.96
@@ -814,95 +810,95 @@
         {
           "date": "2026-03-16",
           "close": 395.56
+        },
+        {
+          "date": "2026-03-17",
+          "close": 396.62
         }
       ]
     },
     {
       "symbol": "GOOGL.US",
-      "total_score": 66.6,
+      "total_score": 68.9,
       "signal": "买入",
       "action": "建仓 50-60%",
       "dimensions": {
         "momentum": {
-          "score": 64.5,
+          "score": 64.3,
           "details": {
             "mom_20d": 1.17,
-            "mom_60d": 2.98,
+            "mom_60d": 1.46,
             "ma_arrangement": 60,
-            "relative_strength": 78.6
+            "relative_strength": 79.4
           }
         },
         "value": {
-          "score": 52.2,
+          "score": 21.6,
           "details": {
-            "pe_ttm": 20.0,
-            "pb": 2.0,
-            "ps_ttm": 3.0,
-            "dividend_yield": 1.0,
-            "source": "Default"
+            "pe_ttm": 28.36,
+            "pb": 8.93,
+            "ps_ttm": 9.22,
+            "dividend_yield": 27.0,
+            "source": "Yahoo Finance"
           }
         },
         "growth": {
-          "score": 70.0,
+          "score": 94.4,
           "details": {
-            "earnings_growth": 10.0,
-            "revenue_growth": 10.0
+            "earnings_growth": 31.1,
+            "revenue_growth": 18.0
           }
         },
         "quality": {
-          "score": 75.0,
+          "score": 92.5,
           "details": {
-            "roe": 15.0,
+            "roe": 35.71,
             "debt_to_equity": 0.5
           }
         },
         "sentiment": {
-          "score": 73.5,
+          "score": 74.1,
           "details": {
-            "volatility_20d": 1.47,
-            "recent_10d_return": 0.65
+            "volatility_20d": 1.44,
+            "recent_10d_return": 1.24
           }
         }
       },
-      "current_price": 305.56,
-      "update_time": "2026-03-17 12:40:37",
+      "current_price": 306.885,
+      "update_time": "2026-03-17 22:04:33",
       "fundamentals": {
-        "pe_ttm": 20.0,
-        "pb": 2.0,
-        "roe": 15.0,
-        "dividend_yield": 1.0,
-        "eps": 10.0,
-        "bps": 152.78
+        "pe_ttm": 28.37,
+        "pb": 8.94,
+        "roe": 35.71,
+        "dividend_yield": 27.0,
+        "eps": 14.18,
+        "bps": 34.35
       },
       "technical": {
-        "rsi_14": 44.1,
-        "ma_10": 303.96,
-        "ma_30": 312.1,
-        "macd": -3.791,
-        "macd_signal": -4.2539,
-        "macd_histogram": 0.4628,
+        "rsi_14": 43.2,
+        "ma_10": 304.29,
+        "ma_30": 310.87,
+        "macd": -3.4132,
+        "macd_signal": -4.0857,
+        "macd_histogram": 0.6726,
         "macd_status": "金叉",
-        "atr": 7.22
+        "atr": 7.07
       },
       "week52": {
-        "current_price": 305.56,
+        "current_price": 306.88,
         "high": 343.69,
         "low": 165.19,
-        "pct_from_high": -11.1,
-        "pct_from_low": 85.0,
-        "position": 78.6
+        "pct_from_high": -10.7,
+        "pct_from_low": 85.8,
+        "position": 79.4
       },
       "reasons": [
-        "估值合理",
-        "盈利能力尚可",
+        "估值偏高 (PE=28.4)",
+        "盈利能力强 (ROE=35.7%)",
         "技术面偏弱"
       ],
       "name": "谷歌 (互联网)",
       "price_history": [
-        {
-          "date": "2026-02-02",
-          "close": 343.69
-        },
         {
           "date": "2026-02-03",
           "close": 339.71
@@ -1018,83 +1014,87 @@
         {
           "date": "2026-03-16",
           "close": 305.56
+        },
+        {
+          "date": "2026-03-17",
+          "close": 306.88
         }
       ]
     },
     {
       "symbol": "BABA.US",
-      "total_score": 63.7,
-      "signal": "买入",
-      "action": "建仓 50-60%",
+      "total_score": 47.6,
+      "signal": "持有",
+      "action": "持有 30-40%",
       "dimensions": {
         "momentum": {
-          "score": 53.0,
+          "score": 53.2,
           "details": {
-            "mom_20d": -12.04,
-            "mom_60d": -7.06,
+            "mom_20d": -11.66,
+            "mom_60d": -6.59,
             "ma_arrangement": 20,
-            "relative_strength": 38.5
+            "relative_strength": 39.5
           }
         },
         "value": {
-          "score": 52.2,
+          "score": 61.6,
           "details": {
-            "pe_ttm": 20.0,
-            "pb": 2.0,
-            "ps_ttm": 3.0,
-            "dividend_yield": 1.0,
-            "source": "Default"
+            "pe_ttm": 18.13,
+            "pb": 2.13,
+            "ps_ttm": 0.32,
+            "dividend_yield": 77.0,
+            "source": "Yahoo Finance"
           }
         },
         "growth": {
-          "score": 70.0,
+          "score": -8.3,
           "details": {
-            "earnings_growth": 10.0,
-            "revenue_growth": 10.0
+            "earnings_growth": -51.8,
+            "revenue_growth": 4.8
           }
         },
         "quality": {
-          "score": 75.0,
+          "score": 61.7,
           "details": {
-            "roe": 15.0,
+            "roe": 11.19,
             "debt_to_equity": 0.5
           }
         },
         "sentiment": {
-          "score": 73.2,
+          "score": 75.6,
           "details": {
-            "volatility_20d": 1.76,
-            "recent_10d_return": 0.83
+            "volatility_20d": 1.78,
+            "recent_10d_return": 3.25
           }
         }
       },
-      "current_price": 136.71,
-      "update_time": "2026-03-17 12:40:51",
+      "current_price": 137.605,
+      "update_time": "2026-03-17 22:04:51",
       "fundamentals": {
-        "pe_ttm": 20.0,
-        "pb": 2.0,
-        "roe": 15.0,
-        "dividend_yield": 1.0,
-        "eps": 10.0,
-        "bps": 68.36
+        "pe_ttm": 18.13,
+        "pb": 2.13,
+        "roe": 11.19,
+        "dividend_yield": 77.0,
+        "eps": 9.07,
+        "bps": 64.55
       },
       "technical": {
-        "rsi_14": 26.2,
-        "ma_10": 134.19,
-        "ma_30": 149.15,
-        "macd": -6.5898,
-        "macd_signal": -6.6102,
-        "macd_histogram": 0.0204,
+        "rsi_14": 28.7,
+        "ma_10": 134.39,
+        "ma_30": 148.12,
+        "macd": -6.13,
+        "macd_signal": -6.5142,
+        "macd_histogram": 0.3842,
         "macd_status": "金叉",
-        "atr": 4.41
+        "atr": 4.33
       },
       "week52": {
-        "current_price": 136.71,
+        "current_price": 137.6,
         "high": 189.34,
         "low": 103.83,
-        "pct_from_high": -27.8,
-        "pct_from_low": 31.7,
-        "position": 38.5
+        "pct_from_high": -27.3,
+        "pct_from_low": 32.5,
+        "position": 39.5
       },
       "reasons": [
         "估值合理",
@@ -1103,10 +1103,6 @@
       ],
       "name": "阿里巴巴 (电商)",
       "price_history": [
-        {
-          "date": "2026-02-02",
-          "close": 168.39
-        },
         {
           "date": "2026-02-03",
           "close": 163.65
@@ -1222,6 +1218,10 @@
         {
           "date": "2026-03-16",
           "close": 136.71
+        },
+        {
+          "date": "2026-03-17",
+          "close": 137.6
         }
       ]
     }
