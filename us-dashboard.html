@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🇺🇸 美股监控看板 - 专业机构版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+            margin-bottom: 40px;
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 16px;
+        }
+        header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #60a5fa, #3b82f6, #60a5fa);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+        }
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+        .subtitle {
+            color: #9ca3af;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+        .update-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 20px;
+            margin-top: 15px;
+            color: #60a5fa;
+            font-size: 0.9em;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        .card:hover::before {
+            opacity: 1;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .stock-info h2 {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+        }
+        .stock-info .symbol {
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+        .signal-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .signal-strong-buy { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .signal-buy { background: linear-gradient(135deg, #34d399, #10b981); color: white; }
+        .signal-hold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+        .signal-reduce { background: linear-gradient(135deg, #fb923c, #f97316); color: white; }
+        .signal-sell { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        
+        .score-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .score-number {
+            font-size: 3em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .score-label {
+            color: #9ca3af;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .dimensions {
+            margin-top: 20px;
+        }
+        .dimension-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .dimension-name {
+            width: 80px;
+            font-size: 0.9em;
+            color: #d1d5db;
+        }
+        .dimension-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 12px;
+        }
+        .dimension-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .dimension-value {
+            width: 40px;
+            text-align: right;
+            font-size: 0.85em;
+            color: #9ca3af;
+        }
+        
+        .price-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .price-item {
+            text-align: center;
+        }
+        .price-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        .price-label {
+            font-size: 0.75em;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+        
+        .action-recommendation {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .action-text {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        .reasons-list {
+            font-size: 0.85em;
+            color: #9ca3af;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .detail-section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .detail-section h3 {
+            font-size: 0.9em;
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            padding: 6px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 6px;
+        }
+        .detail-label {
+            font-size: 0.75em;
+            color: #6b7280;
+            margin-bottom: 3px;
+        }
+        .detail-value {
+            font-size: 0.9em;
+            color: #e4e4e4;
+            font-weight: 600;
+        }
+        
+        .week52-container {
+            padding: 10px;
+        }
+        .week52-bar {
+            position: relative;
+            height: 6px;
+            background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #10b981 100%);
+            border-radius: 3px;
+            margin-bottom: 8px;
+        }
+        .week52-marker {
+            position: absolute;
+            width: 3px;
+            height: 14px;
+            background: #fff;
+            border: 2px solid #3b82f6;
+            border-radius: 2px;
+            top: -4px;
+            transform: translateX(-50%);
+        }
+        .week52-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #9ca3af;
+        }
+        .week52-low, .week52-high {
+            text-align: center;
+        }
+        .week52-current {
+            text-align: center;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        .week52-position {
+            text-align: center;
+            font-size: 0.8em;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            height: 200px;
+            margin-top: 20px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #6b7280;
+            font-size: 0.85em;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 40px;
+        }
+        
+        .data-source {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-left: 8px;
+        }
+        .source-longbridge { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .source-yahoo { background: rgba(99, 102, 241, 0.2); color: #818cf7; }
+        .source-default { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇺🇸 美股监控看板</h1>
+            <p class="subtitle">基于《打开量化投资的黑箱》因子框架</p>
+            <div class="update-badge">📅 更新时间：2026-03-17 22:04:51</div>
+        </header>
+        
+        <div class="grid">
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="stock-info">
+                        <h2>英伟达 (AI 芯片)</h2>
+                        <span class="symbol">NVDA.US</span>
+                        <span class="data-source source-default">Unknown</span>
+                    </div>
+                    <span class="signal-badge signal-buy">买入</span>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-number" style="color: #34d399">66.6</div>
+                    <div class="score-label">综合评分</div>
+                </div>
+                
+                <div class="dimensions">
+                    <div class="dimension-item">
+                        <span class="dimension-name">📈 动量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 62.9%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">62.9</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💰 价值</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 8.2%; background: #ef4444"></div>
+                        </div>
+                        <span class="dimension-value">8.2</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">🚀 成长</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 100.0%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">100.0</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💎 质量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 92.5%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">92.5</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">😊 情绪</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 71.4%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">71.4</span>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h3>📊 基本面指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">PE(TTM)</span>
+                                <span class="detail-value">37.31</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">PB</span>
+                                <span class="detail-value">28.19</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ROE</span>
+                                <span class="detail-value">101.48%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">股息率</span>
+                                <span class="detail-value">2.0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">EPS</span>
+                                <span class="detail-value">$18.66</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">BPS</span>
+                                <span class="detail-value">$6.47</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📈 技术指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">RSI(14)</span>
+                                <span class="detail-value" style="color: #9ca3af">37.6</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(10)</span>
+                                <span class="detail-value">$182.68</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(30)</span>
+                                <span class="detail-value">$184.41</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MACD</span>
+                                <span class="detail-value" style="color: #ef4444">-0.1512 (死叉)</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ATR(波动)</span>
+                                <span class="detail-value">6.32</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📉 52 周位置</h3>
+                        <div class="week52-container">
+                            <div class="week52-bar">
+                                <div class="week52-marker" style="left: 65.9%"></div>
+                            </div>
+                            <div class="week52-labels">
+                                <span class="week52-low">$135.13<br/>(+35.1%)</span>
+                                <span class="week52-current">$182.52</span>
+                                <span class="week52-high">$207.04<br/>(-11.8%)</span>
+                            </div>
+                            <div class="week52-position">位置 65.9%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-recommendation">
+                    <div class="action-text">💡 建仓 50-60%</div>
+                    <div class="reasons-list">
+                        估值偏高 (PE=37.3) | 盈利能力强 (ROE=101.5%) | 技术面偏弱
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="chart-NVDA_US"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="stock-info">
+                        <h2>台积电 (半导体)</h2>
+                        <span class="symbol">TSM.US</span>
+                        <span class="data-source source-default">Unknown</span>
+                    </div>
+                    <span class="signal-badge signal-strong-buy">强烈买入</span>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-number" style="color: #10b981">70.7</div>
+                    <div class="score-label">综合评分</div>
+                </div>
+                
+                <div class="dimensions">
+                    <div class="dimension-item">
+                        <span class="dimension-name">📈 动量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 65.8%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">65.8</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💰 价值</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 31.9%; background: #fbbf24"></div>
+                        </div>
+                        <span class="dimension-value">31.9</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">🚀 成长</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 96.4%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">96.4</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💎 质量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 92.5%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">92.5</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">😊 情绪</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 67.0%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">67.0</span>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h3>📊 基本面指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">PE(TTM)</span>
+                                <span class="detail-value">32.95</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">PB</span>
+                                <span class="detail-value">52.25</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ROE</span>
+                                <span class="detail-value">35.06%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">股息率</span>
+                                <span class="detail-value">104.0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">EPS</span>
+                                <span class="detail-value">$16.48</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">BPS</span>
+                                <span class="detail-value">$6.54</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📈 技术指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">RSI(14)</span>
+                                <span class="detail-value" style="color: #10b981">27.0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(10)</span>
+                                <span class="detail-value">$345.77</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(30)</span>
+                                <span class="detail-value">$356.64</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MACD</span>
+                                <span class="detail-value" style="color: #ef4444">-3.8099 (死叉)</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ATR(波动)</span>
+                                <span class="detail-value">12.59</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📉 52 周位置</h3>
+                        <div class="week52-container">
+                            <div class="week52-bar">
+                                <div class="week52-marker" style="left: 76.5%"></div>
+                            </div>
+                            <div class="week52-labels">
+                                <span class="week52-low">$193.32<br/>(+76.9%)</span>
+                                <span class="week52-current">$341.95</span>
+                                <span class="week52-high">$387.73<br/>(-11.8%)</span>
+                            </div>
+                            <div class="week52-position">位置 76.5%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-recommendation">
+                    <div class="action-text">💡 建仓 60-70%</div>
+                    <div class="reasons-list">
+                        估值偏高 (PE=33.0) | 盈利能力强 (ROE=35.1%) | 技术面超卖
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="chart-TSM_US"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="stock-info">
+                        <h2>Circle (稳定币)</h2>
+                        <span class="symbol">CRCL.US</span>
+                        <span class="data-source source-default">Unknown</span>
+                    </div>
+                    <span class="signal-badge signal-strong-buy">强烈买入</span>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-number" style="color: #10b981">72.0</div>
+                    <div class="score-label">综合评分</div>
+                </div>
+                
+                <div class="dimensions">
+                    <div class="dimension-item">
+                        <span class="dimension-name">📈 动量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 82.3%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">82.3</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💰 价值</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 52.2%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">52.2</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">🚀 成长</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 70.0%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">70.0</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💎 质量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 75.0%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">75.0</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">😊 情绪</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 80.2%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">80.2</span>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h3>📊 基本面指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">PE(TTM)</span>
+                                <span class="detail-value">20.0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">PB</span>
+                                <span class="detail-value">2.0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ROE</span>
+                                <span class="detail-value">15.0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">股息率</span>
+                                <span class="detail-value">1.0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">EPS</span>
+                                <span class="detail-value">$10.0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">BPS</span>
+                                <span class="detail-value">$62.48</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📈 技术指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">RSI(14)</span>
+                                <span class="detail-value" style="color: #ef4444">80.2</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(10)</span>
+                                <span class="detail-value">$113.6</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(30)</span>
+                                <span class="detail-value">$82.36</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MACD</span>
+                                <span class="detail-value" style="color: #10b981">2.9291 (金叉)</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ATR(波动)</span>
+                                <span class="detail-value">8.81</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📉 52 周位置</h3>
+                        <div class="week52-container">
+                            <div class="week52-bar">
+                                <div class="week52-marker" style="left: 35.0%"></div>
+                            </div>
+                            <div class="week52-labels">
+                                <span class="week52-low">$50.23<br/>(+148.8%)</span>
+                                <span class="week52-current">$124.96</span>
+                                <span class="week52-high">$263.45<br/>(-52.6%)</span>
+                            </div>
+                            <div class="week52-position">位置 35.0%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-recommendation">
+                    <div class="action-text">💡 建仓 60-70%</div>
+                    <div class="reasons-list">
+                        估值合理 | 盈利能力尚可 | 技术面超买
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="chart-CRCL_US"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="stock-info">
+                        <h2>特斯拉 (电动车)</h2>
+                        <span class="symbol">TSLA.US</span>
+                        <span class="data-source source-default">Unknown</span>
+                    </div>
+                    <span class="signal-badge signal-reduce">减持</span>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-number" style="color: #fb923c">27.9</div>
+                    <div class="score-label">综合评分</div>
+                </div>
+                
+                <div class="dimensions">
+                    <div class="dimension-item">
+                        <span class="dimension-name">📈 动量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 58.2%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">58.2</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💰 价值</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 0.0%; background: #ef4444"></div>
+                        </div>
+                        <span class="dimension-value">0.0</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">🚀 成长</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: -25.2%; background: #ef4444"></div>
+                        </div>
+                        <span class="dimension-value">-25.2</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💎 质量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 39.7%; background: #fbbf24"></div>
+                        </div>
+                        <span class="dimension-value">39.7</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">😊 情绪</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 69.9%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">69.9</span>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h3>📊 基本面指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">PE(TTM)</span>
+                                <span class="detail-value">370.8</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">PB</span>
+                                <span class="detail-value">18.12</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ROE</span>
+                                <span class="detail-value">4.93%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">股息率</span>
+                                <span class="detail-value">0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">EPS</span>
+                                <span class="detail-value">$185.4</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">BPS</span>
+                                <span class="detail-value">$21.89</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📈 技术指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">RSI(14)</span>
+                                <span class="detail-value" style="color: #9ca3af">37.4</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(10)</span>
+                                <span class="detail-value">$399.23</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(30)</span>
+                                <span class="detail-value">$407.1</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MACD</span>
+                                <span class="detail-value" style="color: #10b981">0.2285 (金叉)</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ATR(波动)</span>
+                                <span class="detail-value">12.99</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📉 52 周位置</h3>
+                        <div class="week52-container">
+                            <div class="week52-bar">
+                                <div class="week52-marker" style="left: 54.5%"></div>
+                            </div>
+                            <div class="week52-labels">
+                                <span class="week52-low">$284.7<br/>(+39.3%)</span>
+                                <span class="week52-current">$396.62</span>
+                                <span class="week52-high">$489.88<br/>(-19.0%)</span>
+                            </div>
+                            <div class="week52-position">位置 54.5%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-recommendation">
+                    <div class="action-text">💡 减仓至 10-20%</div>
+                    <div class="reasons-list">
+                        估值偏高 (PE=370.8) | 盈利能力偏弱 (ROE=4.9%) | 技术面偏弱
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="chart-TSLA_US"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="stock-info">
+                        <h2>谷歌 (互联网)</h2>
+                        <span class="symbol">GOOGL.US</span>
+                        <span class="data-source source-default">Unknown</span>
+                    </div>
+                    <span class="signal-badge signal-buy">买入</span>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-number" style="color: #34d399">68.9</div>
+                    <div class="score-label">综合评分</div>
+                </div>
+                
+                <div class="dimensions">
+                    <div class="dimension-item">
+                        <span class="dimension-name">📈 动量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 64.3%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">64.3</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💰 价值</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 21.6%; background: #ef4444"></div>
+                        </div>
+                        <span class="dimension-value">21.6</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">🚀 成长</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 94.4%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">94.4</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💎 质量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 92.5%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">92.5</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">😊 情绪</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 74.1%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">74.1</span>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h3>📊 基本面指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">PE(TTM)</span>
+                                <span class="detail-value">28.37</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">PB</span>
+                                <span class="detail-value">8.94</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ROE</span>
+                                <span class="detail-value">35.71%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">股息率</span>
+                                <span class="detail-value">27.0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">EPS</span>
+                                <span class="detail-value">$14.18</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">BPS</span>
+                                <span class="detail-value">$34.35</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📈 技术指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">RSI(14)</span>
+                                <span class="detail-value" style="color: #9ca3af">43.2</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(10)</span>
+                                <span class="detail-value">$304.29</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(30)</span>
+                                <span class="detail-value">$310.87</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MACD</span>
+                                <span class="detail-value" style="color: #10b981">0.6726 (金叉)</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ATR(波动)</span>
+                                <span class="detail-value">7.07</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📉 52 周位置</h3>
+                        <div class="week52-container">
+                            <div class="week52-bar">
+                                <div class="week52-marker" style="left: 79.4%"></div>
+                            </div>
+                            <div class="week52-labels">
+                                <span class="week52-low">$165.19<br/>(+85.8%)</span>
+                                <span class="week52-current">$306.88</span>
+                                <span class="week52-high">$343.69<br/>(-10.7%)</span>
+                            </div>
+                            <div class="week52-position">位置 79.4%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-recommendation">
+                    <div class="action-text">💡 建仓 50-60%</div>
+                    <div class="reasons-list">
+                        估值偏高 (PE=28.4) | 盈利能力强 (ROE=35.7%) | 技术面偏弱
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="chart-GOOGL_US"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="stock-info">
+                        <h2>阿里巴巴 (电商)</h2>
+                        <span class="symbol">BABA.US</span>
+                        <span class="data-source source-default">Unknown</span>
+                    </div>
+                    <span class="signal-badge signal-hold">持有</span>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-number" style="color: #fbbf24">47.6</div>
+                    <div class="score-label">综合评分</div>
+                </div>
+                
+                <div class="dimensions">
+                    <div class="dimension-item">
+                        <span class="dimension-name">📈 动量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 53.2%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">53.2</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💰 价值</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 61.6%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">61.6</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">🚀 成长</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: -8.3%; background: #ef4444"></div>
+                        </div>
+                        <span class="dimension-value">-8.3</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">💎 质量</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 61.7%; background: #3b82f6"></div>
+                        </div>
+                        <span class="dimension-value">61.7</span>
+                    </div>
+                    <div class="dimension-item">
+                        <span class="dimension-name">😊 情绪</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: 75.6%; background: #10b981"></div>
+                        </div>
+                        <span class="dimension-value">75.6</span>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h3>📊 基本面指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">PE(TTM)</span>
+                                <span class="detail-value">18.13</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">PB</span>
+                                <span class="detail-value">2.13</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ROE</span>
+                                <span class="detail-value">11.19%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">股息率</span>
+                                <span class="detail-value">77.0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">EPS</span>
+                                <span class="detail-value">$9.07</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">BPS</span>
+                                <span class="detail-value">$64.55</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📈 技术指标</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">RSI(14)</span>
+                                <span class="detail-value" style="color: #10b981">28.7</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(10)</span>
+                                <span class="detail-value">$134.39</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MA(30)</span>
+                                <span class="detail-value">$148.12</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">MACD</span>
+                                <span class="detail-value" style="color: #10b981">0.3842 (金叉)</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">ATR(波动)</span>
+                                <span class="detail-value">4.33</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📉 52 周位置</h3>
+                        <div class="week52-container">
+                            <div class="week52-bar">
+                                <div class="week52-marker" style="left: 39.5%"></div>
+                            </div>
+                            <div class="week52-labels">
+                                <span class="week52-low">$103.83<br/>(+32.5%)</span>
+                                <span class="week52-current">$137.6</span>
+                                <span class="week52-high">$189.34<br/>(-27.3%)</span>
+                            </div>
+                            <div class="week52-position">位置 39.5%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-recommendation">
+                    <div class="action-text">💡 持有 30-40%</div>
+                    <div class="reasons-list">
+                        估值合理 | 盈利能力尚可 | 技术面超卖
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="chart-BABA_US"></canvas>
+                </div>
+            </div>
+
+        </div>
+        
+        <footer>
+            <p>🥔 美股监控看板 v1.0 | 基于《打开量化投资的黑箱》因子框架</p>
+            <p>数据源优先级：长桥 API → Yahoo Finance → 默认值</p>
+            <p>因子权重：动量 25% | 价值 20% | 成长 20% | 质量 20% | 情绪 15%</p>
+        </footer>
+    </div>
+    
+    <script>
+        const stocksData = [{"symbol": "NVDA.US", "total_score": 66.6, "signal": "\u4e70\u5165", "action": "\u5efa\u4ed3 50-60%", "dimensions": {"momentum": {"score": 62.9, "details": {"mom_20d": -2.9, "mom_60d": 4.81, "ma_arrangement": 60, "relative_strength": 65.9}}, "value": {"score": 8.2, "details": {"pe_ttm": 37.31, "pb": 28.19, "ps_ttm": 20.53, "dividend_yield": 2.0, "source": "Yahoo Finance"}}, "growth": {"score": 100.0, "details": {"earnings_growth": 95.6, "revenue_growth": 73.2}}, "quality": {"score": 92.5, "details": {"roe": 101.48, "debt_to_equity": 0.5}}, "sentiment": {"score": 71.4, "details": {"volatility_20d": 2.22, "recent_10d_return": -0.28}}}, "current_price": 182.52, "update_time": "2026-03-17 22:03:34", "fundamentals": {"pe_ttm": 37.31, "pb": 28.19, "roe": 101.48, "dividend_yield": 2.0, "eps": 18.66, "bps": 6.47}, "technical": {"rsi_14": 37.6, "ma_10": 182.68, "ma_30": 184.41, "macd": -0.934, "macd_signal": -0.7828, "macd_histogram": -0.1512, "macd_status": "\u6b7b\u53c9", "atr": 6.32}, "week52": {"current_price": 182.52, "high": 207.04, "low": 135.13, "pct_from_high": -11.8, "pct_from_low": 35.1, "position": 65.9}, "reasons": ["\u4f30\u503c\u504f\u9ad8 (PE=37.3)", "\u76c8\u5229\u80fd\u529b\u5f3a (ROE=101.5%)", "\u6280\u672f\u9762\u504f\u5f31"], "name": "\u82f1\u4f1f\u8fbe (AI \u82af\u7247)", "price_history": [{"date": "2026-02-03", "close": 180.34}, {"date": "2026-02-04", "close": 174.19}, {"date": "2026-02-05", "close": 171.88}, {"date": "2026-02-06", "close": 185.41}, {"date": "2026-02-09", "close": 190.04}, {"date": "2026-02-10", "close": 188.54}, {"date": "2026-02-11", "close": 190.05}, {"date": "2026-02-12", "close": 186.94}, {"date": "2026-02-13", "close": 182.81}, {"date": "2026-02-17", "close": 184.97}, {"date": "2026-02-18", "close": 187.98}, {"date": "2026-02-19", "close": 187.9}, {"date": "2026-02-20", "close": 189.82}, {"date": "2026-02-23", "close": 191.55}, {"date": "2026-02-24", "close": 192.85}, {"date": "2026-02-25", "close": 195.56}, {"date": "2026-02-26", "close": 184.89}, {"date": "2026-02-27", "close": 177.19}, {"date": "2026-03-02", "close": 182.48}, {"date": "2026-03-03", "close": 180.05}, {"date": "2026-03-04", "close": 183.04}, {"date": "2026-03-05", "close": 183.34}, {"date": "2026-03-06", "close": 177.82}, {"date": "2026-03-09", "close": 182.65}, {"date": "2026-03-10", "close": 184.77}, {"date": "2026-03-11", "close": 186.03}, {"date": "2026-03-12", "close": 183.14}, {"date": "2026-03-13", "close": 180.25}, {"date": "2026-03-16", "close": 183.22}, {"date": "2026-03-17", "close": 182.52}]}, {"symbol": "TSM.US", "total_score": 70.7, "signal": "\u5f3a\u70c8\u4e70\u5165", "action": "\u5efa\u4ed3 60-70%", "dimensions": {"momentum": {"score": 65.8, "details": {"mom_20d": -5.61, "mom_60d": 20.12, "ma_arrangement": 60, "relative_strength": 76.5}}, "value": {"score": 31.9, "details": {"pe_ttm": 32.95, "pb": 52.24, "ps_ttm": 0.47, "dividend_yield": 104.0, "source": "Yahoo Finance"}}, "growth": {"score": 96.4, "details": {"earnings_growth": 35.0, "revenue_growth": 20.5}}, "quality": {"score": 92.5, "details": {"roe": 35.06, "debt_to_equity": 0.5}}, "sentiment": {"score": 67.0, "details": {"volatility_20d": 2.45, "recent_10d_return": -4.33}}}, "current_price": 341.95, "update_time": "2026-03-17 22:03:46", "fundamentals": {"pe_ttm": 32.95, "pb": 52.25, "roe": 35.06, "dividend_yield": 104.0, "eps": 16.48, "bps": 6.54}, "technical": {"rsi_14": 27.0, "ma_10": 345.77, "ma_30": 356.64, "macd": -2.4679, "macd_signal": 1.342, "macd_histogram": -3.8099, "macd_status": "\u6b7b\u53c9", "atr": 12.59}, "week52": {"current_price": 341.95, "high": 387.73, "low": 193.32, "pct_from_high": -11.8, "pct_from_low": 76.9, "position": 76.5}, "reasons": ["\u4f30\u503c\u504f\u9ad8 (PE=33.0)", "\u76c8\u5229\u80fd\u529b\u5f3a (ROE=35.1%)", "\u6280\u672f\u9762\u8d85\u5356"], "name": "\u53f0\u79ef\u7535 (\u534a\u5bfc\u4f53)", "price_history": [{"date": "2026-02-03", "close": 335.75}, {"date": "2026-02-04", "close": 325.74}, {"date": "2026-02-05", "close": 330.73}, {"date": "2026-02-06", "close": 348.85}, {"date": "2026-02-09", "close": 355.41}, {"date": "2026-02-10", "close": 361.91}, {"date": "2026-02-11", "close": 374.09}, {"date": "2026-02-12", "close": 368.1}, {"date": "2026-02-13", "close": 366.36}, {"date": "2026-02-17", "close": 364.2}, {"date": "2026-02-18", "close": 362.26}, {"date": "2026-02-19", "close": 360.39}, {"date": "2026-02-20", "close": 370.54}, {"date": "2026-02-23", "close": 370.04}, {"date": "2026-02-24", "close": 385.75}, {"date": "2026-02-25", "close": 387.73}, {"date": "2026-02-26", "close": 376.81}, {"date": "2026-02-27", "close": 374.58}, {"date": "2026-03-02", "close": 369.11}, {"date": "2026-03-03", "close": 353.13}, {"date": "2026-03-04", "close": 357.44}, {"date": "2026-03-05", "close": 353.86}, {"date": "2026-03-06", "close": 338.89}, {"date": "2026-03-09", "close": 348.7}, {"date": "2026-03-10", "close": 347.09}, {"date": "2026-03-11", "close": 354.56}, {"date": "2026-03-12", "close": 336.71}, {"date": "2026-03-13", "close": 338.31}, {"date": "2026-03-16", "close": 340.23}, {"date": "2026-03-17", "close": 341.95}]}, {"symbol": "CRCL.US", "total_score": 72.0, "signal": "\u5f3a\u70c8\u4e70\u5165", "action": "\u5efa\u4ed3 60-70%", "dimensions": {"momentum": {"score": 82.3, "details": {"mom_20d": 97.87, "mom_60d": 54.28, "ma_arrangement": 60, "relative_strength": 35.0}}, "value": {"score": 52.2, "details": {"pe_ttm": 20.0, "pb": 2.0, "ps_ttm": 3.0, "dividend_yield": 1.0, "source": "Default"}}, "growth": {"score": 70.0, "details": {"earnings_growth": 10.0, "revenue_growth": 10.0}}, "quality": {"score": 75.0, "details": {"roe": 15.0, "debt_to_equity": 0.5}}, "sentiment": {"score": 80.2, "details": {"volatility_20d": 8.99, "recent_10d_return": 18.7}}}, "current_price": 124.955, "update_time": "2026-03-17 22:04:01", "fundamentals": {"pe_ttm": 20.0, "pb": 2.0, "roe": 15.0, "dividend_yield": 1.0, "eps": 10.0, "bps": 62.48}, "technical": {"rsi_14": 80.2, "ma_10": 113.6, "ma_30": 82.36, "macd": 13.9652, "macd_signal": 11.036, "macd_histogram": 2.9291, "macd_status": "\u91d1\u53c9", "atr": 8.81}, "week52": {"current_price": 124.96, "high": 263.45, "low": 50.23, "pct_from_high": -52.6, "pct_from_low": 148.8, "position": 35.0}, "reasons": ["\u4f30\u503c\u5408\u7406", "\u76c8\u5229\u80fd\u529b\u5c1a\u53ef", "\u6280\u672f\u9762\u8d85\u4e70"], "name": "Circle (\u7a33\u5b9a\u5e01)", "price_history": [{"date": "2026-02-03", "close": 56.16}, {"date": "2026-02-04", "close": 55.05}, {"date": "2026-02-05", "close": 50.23}, {"date": "2026-02-06", "close": 57.04}, {"date": "2026-02-09", "close": 60.1}, {"date": "2026-02-10", "close": 59.75}, {"date": "2026-02-11", "close": 57.86}, {"date": "2026-02-12", "close": 56.63}, {"date": "2026-02-13", "close": 60.04}, {"date": "2026-02-17", "close": 61.62}, {"date": "2026-02-18", "close": 63.15}, {"date": "2026-02-19", "close": 61.92}, {"date": "2026-02-20", "close": 63.02}, {"date": "2026-02-23", "close": 61.17}, {"date": "2026-02-24", "close": 61.37}, {"date": "2026-02-25", "close": 83.14}, {"date": "2026-02-26", "close": 87.21}, {"date": "2026-02-27", "close": 83.44}, {"date": "2026-03-02", "close": 96.14}, {"date": "2026-03-03", "close": 99.63}, {"date": "2026-03-04", "close": 105.27}, {"date": "2026-03-05", "close": 105.74}, {"date": "2026-03-06", "close": 101.91}, {"date": "2026-03-09", "close": 111.84}, {"date": "2026-03-10", "close": 118.09}, {"date": "2026-03-11", "close": 112.81}, {"date": "2026-03-12", "close": 114.18}, {"date": "2026-03-13", "close": 115.38}, {"date": "2026-03-16", "close": 125.83}, {"date": "2026-03-17", "close": 124.96}]}, {"symbol": "TSLA.US", "total_score": 27.9, "signal": "\u51cf\u6301", "action": "\u51cf\u4ed3\u81f3 10-20%", "dimensions": {"momentum": {"score": 58.2, "details": {"mom_20d": -3.57, "mom_60d": -17.95, "ma_arrangement": 60, "relative_strength": 54.5}}, "value": {"score": 0.0, "details": {"pe_ttm": 370.66, "pb": 18.11, "ps_ttm": 15.69, "dividend_yield": 0, "source": "Yahoo Finance"}}, "growth": {"score": -25.2, "details": {"earnings_growth": -60.6, "revenue_growth": -3.1}}, "quality": {"score": 39.7, "details": {"roe": 4.93, "debt_to_equity": 0.5}}, "sentiment": {"score": 69.9, "details": {"volatility_20d": 1.85, "recent_10d_return": -2.3}}}, "current_price": 396.617, "update_time": "2026-03-17 22:04:18", "fundamentals": {"pe_ttm": 370.8, "pb": 18.12, "roe": 4.93, "dividend_yield": 0, "eps": 185.4, "bps": 21.89}, "technical": {"rsi_14": 37.4, "ma_10": 399.23, "ma_30": 407.1, "macd": -6.7149, "macd_signal": -6.9434, "macd_histogram": 0.2285, "macd_status": "\u91d1\u53c9", "atr": 12.99}, "week52": {"current_price": 396.62, "high": 489.88, "low": 284.7, "pct_from_high": -19.0, "pct_from_low": 39.3, "position": 54.5}, "reasons": ["\u4f30\u503c\u504f\u9ad8 (PE=370.8)", "\u76c8\u5229\u80fd\u529b\u504f\u5f31 (ROE=4.9%)", "\u6280\u672f\u9762\u504f\u5f31"], "name": "\u7279\u65af\u62c9 (\u7535\u52a8\u8f66)", "price_history": [{"date": "2026-02-03", "close": 421.96}, {"date": "2026-02-04", "close": 406.01}, {"date": "2026-02-05", "close": 397.21}, {"date": "2026-02-06", "close": 411.11}, {"date": "2026-02-09", "close": 417.32}, {"date": "2026-02-10", "close": 425.21}, {"date": "2026-02-11", "close": 428.27}, {"date": "2026-02-12", "close": 417.07}, {"date": "2026-02-13", "close": 417.44}, {"date": "2026-02-17", "close": 410.63}, {"date": "2026-02-18", "close": 411.32}, {"date": "2026-02-19", "close": 411.71}, {"date": "2026-02-20", "close": 411.82}, {"date": "2026-02-23", "close": 399.83}, {"date": "2026-02-24", "close": 409.38}, {"date": "2026-02-25", "close": 417.4}, {"date": "2026-02-26", "close": 408.58}, {"date": "2026-02-27", "close": 402.51}, {"date": "2026-03-02", "close": 403.32}, {"date": "2026-03-03", "close": 392.43}, {"date": "2026-03-04", "close": 405.94}, {"date": "2026-03-05", "close": 405.55}, {"date": "2026-03-06", "close": 396.73}, {"date": "2026-03-09", "close": 398.68}, {"date": "2026-03-10", "close": 399.24}, {"date": "2026-03-11", "close": 407.82}, {"date": "2026-03-12", "close": 395.01}, {"date": "2026-03-13", "close": 391.2}, {"date": "2026-03-16", "close": 395.56}, {"date": "2026-03-17", "close": 396.62}]}, {"symbol": "GOOGL.US", "total_score": 68.9, "signal": "\u4e70\u5165", "action": "\u5efa\u4ed3 50-60%", "dimensions": {"momentum": {"score": 64.3, "details": {"mom_20d": 1.17, "mom_60d": 1.46, "ma_arrangement": 60, "relative_strength": 79.4}}, "value": {"score": 21.6, "details": {"pe_ttm": 28.36, "pb": 8.93, "ps_ttm": 9.22, "dividend_yield": 27.0, "source": "Yahoo Finance"}}, "growth": {"score": 94.4, "details": {"earnings_growth": 31.1, "revenue_growth": 18.0}}, "quality": {"score": 92.5, "details": {"roe": 35.71, "debt_to_equity": 0.5}}, "sentiment": {"score": 74.1, "details": {"volatility_20d": 1.44, "recent_10d_return": 1.24}}}, "current_price": 306.885, "update_time": "2026-03-17 22:04:33", "fundamentals": {"pe_ttm": 28.37, "pb": 8.94, "roe": 35.71, "dividend_yield": 27.0, "eps": 14.18, "bps": 34.35}, "technical": {"rsi_14": 43.2, "ma_10": 304.29, "ma_30": 310.87, "macd": -3.4132, "macd_signal": -4.0857, "macd_histogram": 0.6726, "macd_status": "\u91d1\u53c9", "atr": 7.07}, "week52": {"current_price": 306.88, "high": 343.69, "low": 165.19, "pct_from_high": -10.7, "pct_from_low": 85.8, "position": 79.4}, "reasons": ["\u4f30\u503c\u504f\u9ad8 (PE=28.4)", "\u76c8\u5229\u80fd\u529b\u5f3a (ROE=35.7%)", "\u6280\u672f\u9762\u504f\u5f31"], "name": "\u8c37\u6b4c (\u4e92\u8054\u7f51)", "price_history": [{"date": "2026-02-03", "close": 339.71}, {"date": "2026-02-04", "close": 333.04}, {"date": "2026-02-05", "close": 331.25}, {"date": "2026-02-06", "close": 322.86}, {"date": "2026-02-09", "close": 324.32}, {"date": "2026-02-10", "close": 318.58}, {"date": "2026-02-11", "close": 310.96}, {"date": "2026-02-12", "close": 309.0}, {"date": "2026-02-13", "close": 305.72}, {"date": "2026-02-17", "close": 302.02}, {"date": "2026-02-18", "close": 303.33}, {"date": "2026-02-19", "close": 302.85}, {"date": "2026-02-20", "close": 314.98}, {"date": "2026-02-23", "close": 311.49}, {"date": "2026-02-24", "close": 310.9}, {"date": "2026-02-25", "close": 312.9}, {"date": "2026-02-26", "close": 307.38}, {"date": "2026-02-27", "close": 311.76}, {"date": "2026-03-02", "close": 306.52}, {"date": "2026-03-03", "close": 303.58}, {"date": "2026-03-04", "close": 303.13}, {"date": "2026-03-05", "close": 300.88}, {"date": "2026-03-06", "close": 298.52}, {"date": "2026-03-09", "close": 306.36}, {"date": "2026-03-10", "close": 307.04}, {"date": "2026-03-11", "close": 308.7}, {"date": "2026-03-12", "close": 303.55}, {"date": "2026-03-13", "close": 302.28}, {"date": "2026-03-16", "close": 305.56}, {"date": "2026-03-17", "close": 306.88}]}, {"symbol": "BABA.US", "total_score": 47.6, "signal": "\u6301\u6709", "action": "\u6301\u6709 30-40%", "dimensions": {"momentum": {"score": 53.2, "details": {"mom_20d": -11.66, "mom_60d": -6.59, "ma_arrangement": 20, "relative_strength": 39.5}}, "value": {"score": 61.6, "details": {"pe_ttm": 18.13, "pb": 2.13, "ps_ttm": 0.32, "dividend_yield": 77.0, "source": "Yahoo Finance"}}, "growth": {"score": -8.3, "details": {"earnings_growth": -51.8, "revenue_growth": 4.8}}, "quality": {"score": 61.7, "details": {"roe": 11.19, "debt_to_equity": 0.5}}, "sentiment": {"score": 75.6, "details": {"volatility_20d": 1.78, "recent_10d_return": 3.25}}}, "current_price": 137.605, "update_time": "2026-03-17 22:04:51", "fundamentals": {"pe_ttm": 18.13, "pb": 2.13, "roe": 11.19, "dividend_yield": 77.0, "eps": 9.07, "bps": 64.55}, "technical": {"rsi_14": 28.7, "ma_10": 134.39, "ma_30": 148.12, "macd": -6.13, "macd_signal": -6.5142, "macd_histogram": 0.3842, "macd_status": "\u91d1\u53c9", "atr": 4.33}, "week52": {"current_price": 137.6, "high": 189.34, "low": 103.83, "pct_from_high": -27.3, "pct_from_low": 32.5, "position": 39.5}, "reasons": ["\u4f30\u503c\u5408\u7406", "\u76c8\u5229\u80fd\u529b\u5c1a\u53ef", "\u6280\u672f\u9762\u8d85\u5356"], "name": "\u963f\u91cc\u5df4\u5df4 (\u7535\u5546)", "price_history": [{"date": "2026-02-03", "close": 163.65}, {"date": "2026-02-04", "close": 159.14}, {"date": "2026-02-05", "close": 157.76}, {"date": "2026-02-06", "close": 162.51}, {"date": "2026-02-09", "close": 163.0}, {"date": "2026-02-10", "close": 166.51}, {"date": "2026-02-11", "close": 164.32}, {"date": "2026-02-12", "close": 158.73}, {"date": "2026-02-13", "close": 155.73}, {"date": "2026-02-17", "close": 155.43}, {"date": "2026-02-18", "close": 155.77}, {"date": "2026-02-19", "close": 154.27}, {"date": "2026-02-20", "close": 154.45}, {"date": "2026-02-23", "close": 152.78}, {"date": "2026-02-24", "close": 153.11}, {"date": "2026-02-25", "close": 152.28}, {"date": "2026-02-26", "close": 148.05}, {"date": "2026-02-27", "close": 144.11}, {"date": "2026-03-02", "close": 142.56}, {"date": "2026-03-03", "close": 135.59}, {"date": "2026-03-04", "close": 133.27}, {"date": "2026-03-05", "close": 130.35}, {"date": "2026-03-06", "close": 130.79}, {"date": "2026-03-09", "close": 132.64}, {"date": "2026-03-10", "close": 136.85}, {"date": "2026-03-11", "close": 136.29}, {"date": "2026-03-12", "close": 134.2}, {"date": "2026-03-13", "close": 135.21}, {"date": "2026-03-16", "close": 136.71}, {"date": "2026-03-17", "close": 137.6}]}];
+        
+        function renderCharts() {
+            stocksData.forEach(stock => {
+                const ctx = document.getElementById(`chart-${stock.symbol.replace('.', '_')}`);
+                if (!ctx) return;
+                
+                // 获取价格历史 (如果有)
+                const labels = stock.price_history ? stock.price_history.map(d => d.date.slice(5)) : [];
+                const prices = stock.price_history ? stock.price_history.map(d => d.close) : [];
+                
+                if (prices.length === 0) {
+                    ctx.parentElement.style.display = 'none';
+                    return;
+                }
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '收盘价',
+                            data: prices,
+                            borderColor: stock.total_score >= 55 ? '#3b82f6' : '#ef4444',
+                            backgroundColor: stock.total_score >= 55 ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#9ca3af', maxTicksLimit: 6 }
+                            },
+                            y: {
+                                display: true,
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#9ca3af' }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+        
+        renderCharts();
+    </script>
+</body>
+</html>
