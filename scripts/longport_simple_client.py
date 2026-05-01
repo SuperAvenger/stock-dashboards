@@ -1,124 +1,183 @@
 #!/usr/bin/env python3
 """
-长桥简易客户端 - 修复 K 线获取问题
-支持环境变量（GitHub Secrets）和本地配置文件
-
-修复签名问题：长桥 Python SDK 的 JSON 序列化格式与 API 期望不一致
-需要强制使用 ': ' 和 ', ' 作为分隔符（与 Python 默认一致）
+长桥简易客户端 - 纯 HTTP 版 (绕过 SDK 签名问题)
+直接调用长桥 REST API, 不依赖 longport SDK
 """
 
 import os
 import json
+import time
+import hmac
+import hashlib
+import base64
 from pathlib import Path
+from datetime import datetime
 
-# 修复 JSON 序列化格式（签名问题）
-# 长桥 API 期望的 JSON 格式：键值之间有固定的空格
-_original_dumps = json.dumps
-def _fixed_dumps(obj, **kwargs):
-    # 强制使用标准格式：sort_keys=False, separators=(', ', ': ')
-    return _original_dumps(obj, separators=(', ', ': '), **kwargs)
-json.dumps = _fixed_dumps
+import requests
 
-from longport.openapi import Config, QuoteContext, Period
-
-# 配置文件路径（本地开发用）
 SCRIPT_DIR = Path(__file__).parent
 LOCAL_CONFIG = SCRIPT_DIR.parent / 'config' / 'longbridge.conf'
+
+API_BASE = "https://openapi.longportapp.com"
+
 
 def load_config():
     """优先从环境变量读取，其次读取本地配置文件"""
     config = {}
-    
-    # 1. 优先使用环境变量（GitHub Secrets）
+
     if os.environ.get('LONGPORT_APP_KEY'):
         config['APP_KEY'] = os.environ.get('LONGPORT_APP_KEY', '')
         config['APP_SECRET'] = os.environ.get('LONGPORT_APP_SECRET', '')
         config['ACCESS_TOKEN'] = os.environ.get('LONGPORT_ACCESS_TOKEN', '')
         return config
-    
-    # 2. 读取本地配置文件
+
     if LOCAL_CONFIG.exists():
         with open(LOCAL_CONFIG, 'r') as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
-                    config[line.split('=')[0].strip()] = line.split('=')[1].strip()
-    
+                    key, _, val = line.partition('=')
+                    config[key.strip()] = val.strip()
+
     return config
 
-def get_kline(symbol='9988.HK', count=400, include_extended=False):
-    """
-    获取 K 线数据
-    
-    Args:
-        symbol: 股票代码
-        count: K 线数量
-        include_extended: 是否包含扩展字段 (PE/PB/换手率等)
-    """
-    config = load_config()
-    
-    cfg = Config(
-        app_key=config.get('APP_KEY', ''),
-        app_secret=config.get('APP_SECRET', ''),
-        access_token=config.get('ACCESS_TOKEN', '')
-    )
-    
+
+def _sign_request(method, path, body, timestamp, app_secret):
+    """生成请求签名"""
+    # 长桥签名格式: method + path + body + timestamp
+    msg = f"{method}\n{path}\n{body}\n{timestamp}"
+    sig = hmac.new(
+        app_secret.encode('utf-8'),
+        msg.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    return base64.b64encode(sig).decode('utf-8')
+
+
+def _api_request(method, path, params=None, config=None):
+    """发起 API 请求"""
+    if config is None:
+        config = load_config()
+
+    url = f"{API_BASE}{path}"
+    timestamp = str(int(time.time()))
+
+    headers = {
+        'Authorization': f'Bearer {config["ACCESS_TOKEN"]}',
+        'Content-Type': 'application/json',
+        'X-App-Key': config['APP_KEY'],
+        'X-Timestamp': timestamp,
+    }
+
+    body = json.dumps(params) if params else ""
+
     try:
-        quote_ctx = QuoteContext(cfg)
-        
-        # 方式 2: 指定调整类型 (最稳定)
-        from longport.openapi import AdjustType
-        kline = quote_ctx.candlesticks(symbol, Period.Day, count, AdjustType.NoAdjust)
-        
-        if not kline:
+        if method == 'GET':
+            resp = requests.get(url, headers=headers, params=params, timeout=15)
+        else:
+            resp = requests.post(url, headers=headers, data=body, timeout=15)
+
+        if resp.status_code != 200:
+            print(f"API Error {resp.status_code}: {resp.text[:200]}")
             return None
-        
-        if include_extended:
-            # 获取扩展数据
-            try:
-                quote = quote_ctx.quote([symbol])
-                if quote:
-                    q = quote[0]
-                    # 为每根 K 线添加扩展字段
-                    result = []
-                    for c in kline:
-                        result.append({
-                            'timestamp': c.timestamp,
-                            'open': float(c.open),
-                            'high': float(c.high),
-                            'low': float(c.low),
-                            'close': float(c.close),
-                            'volume': float(c.volume),
-                            'turnover': float(getattr(q, 'turnover', 0)),  # 成交额
-                            'pe_ttm': float(getattr(q, 'pe_ttm', 0)),      # 市盈率
-                            'pb': float(getattr(q, 'pb', 0)),              # 市净率
-                            'ps_ttm': float(getattr(q, 'ps_ttm', 0)),      # 市销率
-                            'dividend_yield': float(getattr(q, 'dividend_yield', 0)),  # 股息率
-                            'change_percent': float(getattr(q, 'change_percent', 0)),  # 涨跌幅
-                            'turnover_rate': float(getattr(q, 'turnover_rate', 0)),    # 换手率
-                        })
-                    return result
-            except Exception as e:
-                print(f"⚠️ 获取扩展字段失败：{e}, 使用基础字段")
-        
-        return list(kline)
-        
+
+        data = resp.json()
+        if data.get('code') != 0:
+            print(f"API Error: {data.get('message', 'unknown')} (code={data.get('code')})")
+            return None
+
+        return data.get('data')
+
     except Exception as e:
-        print(f"❌ 连接失败：{e}")
+        print(f"Request failed: {e}")
         return None
+
+
+def get_kline(symbol='9988.HK', count=200):
+    """
+    获取 K 线数据 (日线)
+    返回: list of dict with keys: timestamp, open, high, low, close, volume
+    """
+    # 转换代码格式: 09988.HK -> 9988.HK
+    code = symbol.lstrip('0')
+    if not code.endswith('.HK') and not code.endswith('.US'):
+        code = symbol
+
+    data = _api_request('GET', '/quote/v1/candlestick', {
+        'symbol': code,
+        'period': 'day',
+        'count': str(count),
+        'adjust_type': '0',  # 不复权
+    })
+
+    if not data or 'candlesticks' not in data:
+        # fallback: 尝试用 SDK
+        return _get_kline_sdk(symbol, count)
+
+    result = []
+    for c in data['candlesticks']:
+        result.append({
+            'timestamp': datetime.fromtimestamp(c.get('timestamp', 0)),
+            'open': float(c.get('open', 0)),
+            'high': float(c.get('high', 0)),
+            'low': float(c.get('low', 0)),
+            'close': float(c.get('close', 0)),
+            'volume': float(c.get('volume', 0)),
+        })
+
+    return result
+
+
+def _get_kline_sdk(symbol, count):
+    """Fallback: 使用 longport SDK"""
+    try:
+        config = load_config()
+        from longport.openapi import Config, QuoteContext, Period, AdjustType
+        cfg = Config(
+            app_key=config.get('APP_KEY', ''),
+            app_secret=config.get('APP_SECRET', ''),
+            access_token=config.get('ACCESS_TOKEN', '')
+        )
+        quote_ctx = QuoteContext(cfg)
+        kline = quote_ctx.candlesticks(symbol, Period.Day, count, AdjustType.NoAdjust)
+        return list(kline) if kline else None
+    except Exception as e:
+        print(f"SDK fallback failed: {e}")
+        return None
+
+
+def get_quote(symbol):
+    """获取实时行情"""
+    code = symbol.lstrip('0')
+    data = _api_request('GET', '/quote/v1/quote', {'symbol': code})
+    if data and 'quote' in data:
+        q = data['quote'][0] if isinstance(data['quote'], list) else data['quote']
+        return {
+            'symbol': symbol,
+            'last_done': float(q.get('last_done', 0)),
+            'prev_close': float(q.get('prev_close', 0)),
+            'change': float(q.get('change', 0)),
+            'change_percent': float(q.get('change_percent', 0)),
+            'volume': float(q.get('volume', 0)),
+            'turnover': float(q.get('turnover', 0)),
+            'pe_ttm': float(q.get('pe_ttm', 0)),
+            'pb': float(q.get('pb', 0)),
+            'dividend_yield': float(q.get('dividend_yield', 0)),
+            'high_52w': float(q.get('high_price_52w', 0)),
+            'low_52w': float(q.get('low_price_52w', 0)),
+        }
+    return None
+
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("长桥 K 线获取测试")
+    print("长桥 K 线获取测试 (HTTP)")
     print("=" * 60)
-    
-    kline = get_kline('9988.HK', 400)
-    
+
+    kline = get_kline('9988.HK', 10)
     if kline:
-        print(f"\n获取到 {len(kline)} 条 K 线")
-        print(f"第一条：{kline[0]}")
-        print(f"最后一条：{kline[-1]}")
+        print(f"获取到 {len(kline)} 条 K 线")
+        for k in kline[-3:]:
+            print(f"  {k}")
     else:
-        print("\n❌ 获取失败")
-    
-    print("=" * 60)
+        print("获取失败")
