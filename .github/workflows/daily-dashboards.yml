@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas numpy requests longport
+          pip install pandas numpy requests longport beautifulsoup4 lxml
 
       - name: Generate HK Dashboard (Pro Version)
         env:
@@ -40,6 +40,11 @@ jobs:
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
         run: python scripts/push_to_feishu.py
+
+      - name: AI News Daily
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: python scripts/ai_news_daily.py
 
       - name: Upload output to GitHub Pages
         uses: actions/upload-pages-artifact@v3
