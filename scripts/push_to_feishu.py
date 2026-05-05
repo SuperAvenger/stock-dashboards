@@ -36,17 +36,19 @@ def load_data():
 
 
 def format_stock_line(stock, currency=''):
-    """格式化单只股票信息 (适配新版数据格式)"""
+    """格式化单只股票信息 (兼容两种数据格式)"""
     f = stock.get('fundamentals', {})
-    p = stock.get('price_data', {})
     t = stock.get('technical', {})
+    # 港股用 price_data, 美股用 week52 + current_price
+    p = stock.get('price_data', {})
+    w = stock.get('week52', {})
 
     lines = []
     lines.append(f"**{stock['name']}** `{stock['symbol']}`")
-    lines.append(f"   得分：{stock.get('total_score', '?')} | {stock.get('rating', '?')} | {t.get('signal', '')}")
+    lines.append(f"   得分：{stock.get('total_score', '?')} | {stock.get('signal') or stock.get('rating', '?')} | {t.get('signal', '')}")
 
-    current = p.get('current', '?')
-    pct_from_high = p.get('pct_from_high', 0)
+    current = p.get('current') or stock.get('current_price') or w.get('current_price', '?')
+    pct_from_high = p.get('pct_from_high') or w.get('pct_from_high', 0) or 0
     lines.append(f"   现价：{currency}{current} (距高点{pct_from_high:+.1f}%)")
 
     pe = f.get('pe_ttm', 'N/A')
@@ -54,8 +56,8 @@ def format_stock_line(stock, currency=''):
     div = f.get('dividend_yield', 'N/A')
     lines.append(f"   PE: {pe} | PB: {pb} | 股息: {div}%")
 
-    low = p.get('low_52w', '?')
-    high = p.get('high_52w', '?')
+    low = p.get('low_52w') or w.get('low', '?')
+    high = p.get('high_52w') or w.get('high', '?')
     lines.append(f"   52 周：{low} ~ {high}")
 
     action = stock.get('action', '')
