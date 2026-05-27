@@ -20,7 +20,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas numpy requests longport beautifulsoup4 lxml
+          pip install pandas numpy requests longport beautifulsoup4 lxml deep-translator
+
+      - name: Restore previous push state
+        run: |
+          # 从 gh-pages 拉取上次的推送状态（如果存在）
+          mkdir -p output
+          curl -sL -o output/push-state.json \
+            "https://SuperAvenger.github.io/stock-dashboards/push-state.json" \
+            || echo '{"hk":{},"us":{}}' > output/push-state.json
+          echo "📋 已恢复推送状态:"
+          cat output/push-state.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  港股: {len(d.get(\"hk\",{}))} 只 | 美股: {len(d.get(\"us\",{}))} 只')"
 
       - name: Generate HK Dashboard (Pro Version)
         env:
@@ -36,12 +46,12 @@ jobs:
           LONGPORT_ACCESS_TOKEN: ${{ secrets.LONGPORT_ACCESS_TOKEN }}
         run: python scripts/dashboard_generator_us.py
 
-      - name: Push to Feishu
+      - name: Push to Feishu (smart dedup)
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
         run: python scripts/push_to_feishu.py
 
-      - name: AI News Daily
+      - name: AI News Daily (with translation)
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
         run: python scripts/ai_news_daily.py

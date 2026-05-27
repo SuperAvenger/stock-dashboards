@@ -2,6 +2,7 @@
 """
 AI 资讯日报 - 轻量版
 从多个 AI 资讯源抓取最新标题+链接，推送到飞书
+v2: 增加英文→中文翻译（非中文标题自动翻译）
 """
 import os
 import json
@@ -12,8 +13,38 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
+try:
+    from deep_translator import GoogleTranslator
+    TRANSLATOR = GoogleTranslator(source='auto', target='zh-CN')
+    HAS_TRANSLATOR = True
+except ImportError:
+    HAS_TRANSLATOR = False
+    print("⚠️ deep-translator 未安装，跳过翻译")
+
 FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK", "")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+
+def is_chinese(text):
+    """判断文本是否主要是中文"""
+    if not text:
+        return False
+    chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+    return chinese_chars / max(len(text), 1) > 0.3
+
+
+def translate_title(title):
+    """翻译英文标题为中文"""
+    if not title or not HAS_TRANSLATOR:
+        return title
+    if is_chinese(title):
+        return title  # 已经是中文，不翻译
+    try:
+        translated = TRANSLATOR.translate(title[:200])  # 限制长度避免 API 限制
+        return translated if translated else title
+    except Exception as e:
+        print(f"  翻译失败: {e}")
+        return title
 
 
 def fetch_rss(url, source_name, max_items=10):
@@ -232,6 +263,28 @@ def main():
     # 去重
     all_items = dedup(all_items)
     print(f"\n共采集 {len(all_items)} 条 AI 资讯")
+
+    # 翻译英文标题 (批量翻译，减少 API 调用)
+    if HAS_TRANSLATOR:
+        print("\n>>> 翻译英文标题...")
+        en_titles = [(i, item['title']) for i, item in enumerate(all_items) if not is_chinese(item['title'])]
+        if en_titles:
+            try:
+                # 批量翻译 (deep-translator 支持)
+                original_texts = [t[1][:200] for t in en_titles]
+                translated_texts = TRANSLATOR.translate_batch(original_texts)
+                for (idx, _), translated in zip(en_titles, translated_texts):
+                    if translated:
+                        all_items[idx]['title_original'] = all_items[idx]['title']
+                        all_items[idx]['title'] = translated
+                print(f"  批量翻译了 {len(en_titles)} 条")
+            except Exception as e:
+                print(f"  批量翻译失败，回退逐条翻译: {e}")
+                for idx, title in en_titles:
+                    all_items[idx]['title_original'] = title
+                    all_items[idx]['title'] = translate_title(title)
+    else:
+        print("\n⚠️ 跳过翻译（translator 不可用）")
 
     # 保存
     output_dir = Path(__file__).parent.parent / "output"
