@@ -23,10 +23,11 @@ FEISHU_WEBHOOK = os.environ.get('FEISHU_WEBHOOK', '')
 # 评分变化阈值
 SCORE_CHANGE_THRESHOLD = 5
 
-# 截止信号组合：这些组合不推送
+# 截止信号组合：这些组合不推送（除非信号刚变化）
 EXCLUDED_COMBOS = {
     ('死叉', '谨慎'),
     ('死叉', '卖出'),
+    ('死叉', '中性'),
 }
 
 # 评分过低阈值
@@ -65,17 +66,23 @@ def save_state(state):
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
-def is_expired(stock):
+def is_expired(stock, prev_stock=None):
     """
     判断股票信号是否已截止（不应推送）
 
     截止条件：
-    1. 死叉 + 评级为谨慎/卖出
+    1. 死叉 + 评级为中性/谨慎/卖出（但信号刚变化的除外）
     2. 评分低于阈值
     """
     signal = stock.get('technical', {}).get('signal', '')
     rating = stock.get('rating', '')
     score = stock.get('total_score', 0)
+
+    # 如果信号刚从金叉变死叉，不算截止（这是重要变化，需要推送）
+    if prev_stock:
+        old_signal = prev_stock.get('signal', '')
+        if old_signal != signal and signal:
+            return False  # 信号变化了，不截止
 
     if (signal, rating) in EXCLUDED_COMBOS:
         return True
@@ -103,13 +110,12 @@ def detect_changes(current_stocks, prev_state, market='hk'):
 
     for stock in current_stocks:
         symbol = stock['symbol']
+        prev = prev_stocks.get(symbol)
 
-        # 先检查是否截止
-        if is_expired(stock):
+        # 先检查是否截止（传入上次状态以判断信号是否刚变化）
+        if is_expired(stock, prev):
             skipped_expired.append(stock)
             continue
-
-        prev = prev_stocks.get(symbol)
         if prev is None:
             # 新股票，首次推送
             changed.append(stock)
