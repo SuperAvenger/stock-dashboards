@@ -6,6 +6,9 @@ on:
     - cron: '30 0,9 * * 1-5'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   generate-dashboards:
     runs-on: ubuntu-latest
@@ -19,8 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install pandas numpy requests longport beautifulsoup4 lxml deep-translator
+        run: pip install -r requirements.txt
 
       - name: Restore previous push state
         run: |

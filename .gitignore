@@ -14,3 +14,6 @@ venv/
 
 # Logs
 *.log
+
+# Generated dashboard artifacts
+output/

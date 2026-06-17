@@ -19,6 +19,7 @@
 | Secret Name | Value |
 |------------|-------|
 | `LONGPORT_APP_KEY` | 长桥 APP_KEY |
+| `LONGPORT_APP_SECRET` | 长桥 APP_SECRET |
 | `LONGPORT_ACCESS_TOKEN` | 长桥 Access Token |
 | `FEISHU_WEBHOOK` | 飞书机器人 Webhook |
 
@@ -30,10 +31,11 @@
 
 ```bash
 # 安装依赖
-pip install pandas numpy requests
+pip install -r requirements.txt
 
 # 设置环境变量
 export LONGPORT_APP_KEY="your_key"
+export LONGPORT_APP_SECRET="your_secret"
 export LONGPORT_ACCESS_TOKEN="your_token"
 export FEISHU_WEBHOOK="your_webhook"
 
