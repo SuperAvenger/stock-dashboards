@@ -64,3 +64,7 @@ python scripts/push_to_feishu.py
 ## License
 
 MIT
+
+## Roadmap
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for reliability, research, and read-only MCP expansion priorities.
