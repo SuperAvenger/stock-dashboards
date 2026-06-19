@@ -67,10 +67,14 @@ def build_score_assessment(df, current_price: float, market_source: str, fundame
     )
 
     risk_flags = []
-    if market_source != "longport":
+    if market_source == "simulated":
         risk_flags.append("simulated_market_data")
-    if fundamental_source != "longport":
+    elif market_source != "longport":
+        risk_flags.append("missing_market_data")
+    if fundamental_source == "simulated":
         risk_flags.append("simulated_fundamentals")
+    elif fundamental_source != "longport":
+        risk_flags.append("missing_fundamentals")
     if len(df) < 120:
         risk_flags.append("limited_price_history")
     if not all(_finite(value) for value in (ma10, ma30, rsi, macd_value, signal_value)):

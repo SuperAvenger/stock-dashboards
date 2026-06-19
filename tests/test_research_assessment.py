@@ -28,3 +28,16 @@ def test_research_priority_is_not_an_order_instruction():
     assert research_priority(80) == "重点研究"
     assert research_priority(60) == "持续观察"
     assert research_priority(30) == "谨慎跟踪"
+
+
+def test_missing_fundamentals_are_not_labeled_as_simulated():
+    values = np.linspace(100, 120, 140)
+    result = build_score_assessment(
+        price_frame(values),
+        current_price=float(values[-1]),
+        market_source="longport",
+        fundamental_source="unavailable",
+    )
+
+    assert "missing_fundamentals" in result["risk_flags"]
+    assert "simulated_fundamentals" not in result["risk_flags"]

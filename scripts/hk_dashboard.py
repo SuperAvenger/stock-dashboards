@@ -14,12 +14,15 @@ from decimal import Decimal
 import requests
 try:
     from .research_assessment import build_score_assessment, research_priority
+    from .fundamentals_provider import fetch_fundamentals
 except ImportError:
     from research_assessment import build_score_assessment, research_priority
+    from fundamentals_provider import fetch_fundamentals
 
 # ============== 配置 ==============
 LONGPORT_APP_KEY = os.environ.get('LONGPORT_APP_KEY', '')
 LONGPORT_ACCESS_TOKEN = os.environ.get('LONGPORT_ACCESS_TOKEN', '')
+ALLOW_SIMULATED_DATA = os.environ.get('ALLOW_SIMULATED_DATA', '0').lower() in {'1', 'true', 'yes'}
 LONGPORT_API_BASE = 'https://openapi.longportapp.com'
 
 SCRIPT_DIR = Path(__file__).parent
@@ -32,8 +35,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 def get_kline(symbol: str, days: int = 200):
     """获取 K 线数据"""
     if not LONGPORT_ACCESS_TOKEN:
-        print(f"⚠️ 未配置长桥 Token，使用模拟数据")
-        return generate_mock_kline(symbol, days)
+        if ALLOW_SIMULATED_DATA:
+            print(f"⚠️ 未配置长桥 Token，显式使用模拟数据")
+            return generate_mock_kline(symbol, days)
+        print(f"⚠️ 未配置长桥 Token，跳过 {symbol}")
+        return []
     
     try:
         url = f"{LONGPORT_API_BASE}/quote/kline"
@@ -57,7 +63,7 @@ def get_kline(symbol: str, days: int = 200):
     except Exception as e:
         print(f"⚠️ 获取 K 线失败 {symbol}: {e}")
     
-    return generate_mock_kline(symbol, days)
+    return generate_mock_kline(symbol, days) if ALLOW_SIMULATED_DATA else []
 
 
 class KlineData:
@@ -180,16 +186,14 @@ def analyze_stock(symbol, name, settings):
     pct_from_low = ((current_price - low_52w) / low_52w) * 100
     
     # 得分
+    fundamentals = get_fundamentals(symbol, name, current_price)
     assessment = build_score_assessment(
         df,
         current_price,
         market_source=df.attrs.get('data_source', 'unknown'),
-        fundamental_source='simulated',
+        fundamental_source=fundamentals.get('source', 'unavailable'),
     )
     score = assessment['score']
-    
-    # 基本面数据（模拟，实际可从长桥 API 获取）
-    fundamentals = get_fundamentals(symbol, name, current_price)
     
     # 价格历史
     price_history = []
@@ -217,30 +221,8 @@ def analyze_stock(symbol, name, settings):
 
 
 def get_fundamentals(symbol, name, current_price):
-    """获取基本面数据（模拟）"""
-    # 实际可从长桥 API 或第三方获取
-    # 这里用行业典型值模拟
-    fundamentals_db = {
-        '09988.HK': {'pe': 12.5, 'pb': 1.8, 'market_cap': '2.1 万亿', 'sector': '电商', 'dividend': '1.2%'},
-        '00700.HK': {'pe': 18.2, 'pb': 3.5, 'market_cap': '4.5 万亿', 'sector': '互联网', 'dividend': '0.4%'},
-        '03690.HK': {'pe': 35.8, 'pb': 4.2, 'market_cap': '1.0 万亿', 'sector': '本地生活', 'dividend': '0.0%'},
-        '01810.HK': {'pe': 22.1, 'pb': 5.1, 'market_cap': '0.8 万亿', 'sector': '消费电子', 'dividend': '0.5%'},
-        '09961.HK': {'pe': 15.3, 'pb': 3.8, 'market_cap': '0.5 万亿', 'sector': '旅游', 'dividend': '0.0%'},
-        '01024.HK': {'pe': 28.5, 'pb': 4.5, 'market_cap': '0.6 万亿', 'sector': '短视频', 'dividend': '0.0%'},
-        '09618.HK': {'pe': 14.2, 'pb': 2.1, 'market_cap': '0.4 万亿', 'sector': '电商', 'dividend': '0.0%'},
-        '09999.HK': {'pe': 16.8, 'pb': 3.2, 'market_cap': '0.5 万亿', 'sector': '游戏', 'dividend': '1.5%'},
-        '00981.HK': {'pe': 45.2, 'pb': 2.8, 'market_cap': '0.3 万亿', 'sector': '半导体', 'dividend': '0.0%'},
-        '01211.HK': {'pe': 25.6, 'pb': 4.8, 'market_cap': '0.9 万亿', 'sector': '新能源汽车', 'dividend': '0.3%'},
-    }
-    
-    base = fundamentals_db.get(symbol, {})
-    return {
-        'pe': base.get('pe', round(15 + current_price/50, 1)),
-        'pb': base.get('pb', round(2 + current_price/100, 1)),
-        'market_cap': base.get('market_cap', 'N/A'),
-        'sector': base.get('sector', '其他'),
-        'dividend': base.get('dividend', '0.0%')
-    }
+    """获取长桥真实基本面；不可用时保留空值。"""
+    return fetch_fundamentals(symbol, current_price)
 
 
 # ============== HTML 生成 ==============
