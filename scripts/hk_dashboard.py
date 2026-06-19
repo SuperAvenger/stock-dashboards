@@ -12,6 +12,10 @@ from datetime import datetime
 from pathlib import Path
 from decimal import Decimal
 import requests
+try:
+    from .research_assessment import build_score_assessment, research_priority
+except ImportError:
+    from research_assessment import build_score_assessment, research_priority
 
 # ============== 配置 ==============
 LONGPORT_APP_KEY = os.environ.get('LONGPORT_APP_KEY', '')
@@ -57,13 +61,14 @@ def get_kline(symbol: str, days: int = 200):
 
 
 class KlineData:
-    def __init__(self, candle):
+    def __init__(self, candle, source='longport'):
         self.timestamp = candle.get('time', '')
         self.open = float(candle.get('open', 0))
         self.high = float(candle.get('high', 0))
         self.low = float(candle.get('low', 0))
         self.close = float(candle.get('close', 0))
         self.volume = float(candle.get('volume', 0))
+        self.source = source
 
 
 def generate_mock_kline(symbol: str, days: int):
@@ -85,7 +90,7 @@ def generate_mock_kline(symbol: str, days: int):
             'volume': random.randint(1000000, 10000000)
         })
         base_price = close
-    return [KlineData(c) for c in candles]
+    return [KlineData(c, source='simulated') for c in candles]
 
 
 # ============== 技术指标 ==============
@@ -133,12 +138,7 @@ def calculate_score(df, current_price):
 
 
 def get_signal(score):
-    if score >= 70:
-        return '✅ 买入'
-    elif score >= 50:
-        return '⚠️ 观望'
-    else:
-        return '❌ 谨慎'
+    return research_priority(score)
 
 
 # ============== 主逻辑 ==============
@@ -159,6 +159,7 @@ def fetch_stock_data(symbol):
     
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date').sort_index()
+    df.attrs['data_source'] = getattr(kline[0], 'source', 'unknown')
     return df
 
 
@@ -179,7 +180,13 @@ def analyze_stock(symbol, name, settings):
     pct_from_low = ((current_price - low_52w) / low_52w) * 100
     
     # 得分
-    score = calculate_score(df, current_price)
+    assessment = build_score_assessment(
+        df,
+        current_price,
+        market_source=df.attrs.get('data_source', 'unknown'),
+        fundamental_source='simulated',
+    )
+    score = assessment['score']
     
     # 基本面数据（模拟，实际可从长桥 API 获取）
     fundamentals = get_fundamentals(symbol, name, current_price)
@@ -199,6 +206,7 @@ def analyze_stock(symbol, name, settings):
         'change': round(pct_change, 2),
         'score': score,
         'signal': get_signal(score),
+        'assessment': assessment,
         'high_52w': round(high_52w, 2),
         'low_52w': round(low_52w, 2),
         'pct_from_high': round(pct_from_high, 1),
@@ -241,6 +249,15 @@ def generate_html(stocks_data, title, update_time):
     cards_html = ''
     for stock in stocks_data:
         color = '#22c55e' if stock['score'] >= 70 else '#f59e0b' if stock['score'] >= 50 else '#ef4444'
+        assessment = stock.get('assessment', {})
+        confidence = {'high': '高', 'medium': '中', 'low': '低'}.get(assessment.get('confidence'), '未知')
+        factor_html = ''.join(
+            f"<li><span>{factor['factor']}</span><strong>{factor['impact']:+d}</strong> {factor['observation']}</li>"
+            for factor in assessment.get('factors', [])
+        )
+        risk_html = ''
+        if assessment.get('risk_flags'):
+            risk_html = '<div class="data-warning">数据提示：' + '、'.join(assessment['risk_flags']) + '</div>'
         cards_html += f'''
         <div class="stock-card" style="border-left: 4px solid {color}">
             <div class="stock-header">
@@ -262,6 +279,9 @@ def generate_html(stocks_data, title, update_time):
                 <div>52 周高：{stock['high_52w']}</div>
                 <div>52 周低：{stock['low_52w']}</div>
             </div>
+            <div class="research-meta">研究置信度：<strong>{confidence}</strong></div>
+            <ul class="factor-list">{factor_html}</ul>
+            {risk_html}
         </div>
         '''
     
@@ -338,6 +358,11 @@ def generate_html(stocks_data, title, update_time):
             color: #9ca3af;
             font-size: 0.9em;
         }}
+        .research-meta {{ margin-top: 14px; color: #cbd5e1; font-size: 0.9em; }}
+        .factor-list {{ margin: 10px 0 0; padding-left: 18px; color: #cbd5e1; font-size: 0.82em; line-height: 1.55; }}
+        .factor-list span {{ display: inline-block; min-width: 68px; color: #f8fafc; }}
+        .factor-list strong {{ display: inline-block; min-width: 30px; color: #93c5fd; }}
+        .data-warning {{ margin-top: 10px; color: #fbbf24; font-size: 0.78em; overflow-wrap: anywhere; }}
     </style>
 </head>
 <body>
