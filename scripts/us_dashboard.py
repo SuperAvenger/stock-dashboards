@@ -12,10 +12,17 @@ from datetime import datetime
 from pathlib import Path
 from decimal import Decimal
 import requests
+try:
+    from .research_assessment import build_score_assessment, research_priority
+    from .fundamentals_provider import fetch_fundamentals
+except ImportError:
+    from research_assessment import build_score_assessment, research_priority
+    from fundamentals_provider import fetch_fundamentals
 
 # ============== 配置 ==============
 LONGPORT_APP_KEY = os.environ.get('LONGPORT_APP_KEY', '')
 LONGPORT_ACCESS_TOKEN = os.environ.get('LONGPORT_ACCESS_TOKEN', '')
+ALLOW_SIMULATED_DATA = os.environ.get('ALLOW_SIMULATED_DATA', '0').lower() in {'1', 'true', 'yes'}
 LONGPORT_API_BASE = 'https://openapi.longportapp.com'
 
 SCRIPT_DIR = Path(__file__).parent
@@ -29,8 +36,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 def get_kline(symbol: str, days: int = 200):
     """获取 K 线数据"""
     if not LONGPORT_ACCESS_TOKEN:
-        print(f"⚠️ 未配置长桥 Token，使用模拟数据")
-        return generate_mock_kline(symbol, days)
+        if ALLOW_SIMULATED_DATA:
+            print(f"⚠️ 未配置长桥 Token，显式使用模拟数据")
+            return generate_mock_kline(symbol, days)
+        print(f"⚠️ 未配置长桥 Token，跳过 {symbol}")
+        return []
     
     try:
         url = f"{LONGPORT_API_BASE}/quote/kline"
@@ -54,17 +64,18 @@ def get_kline(symbol: str, days: int = 200):
     except Exception as e:
         print(f"⚠️ 获取 K 线失败 {symbol}: {e}")
     
-    return generate_mock_kline(symbol, days)
+    return generate_mock_kline(symbol, days) if ALLOW_SIMULATED_DATA else []
 
 
 class KlineData:
-    def __init__(self, candle):
+    def __init__(self, candle, source='longport'):
         self.timestamp = candle.get('time', '')
         self.open = float(candle.get('open', 0))
         self.high = float(candle.get('high', 0))
         self.low = float(candle.get('low', 0))
         self.close = float(candle.get('close', 0))
         self.volume = float(candle.get('volume', 0))
+        self.source = source
 
 
 def generate_mock_kline(symbol: str, days: int):
@@ -86,7 +97,7 @@ def generate_mock_kline(symbol: str, days: int):
             'volume': random.randint(1000000, 50000000)
         })
         base_price = close
-    return [KlineData(c) for c in candles]
+    return [KlineData(c, source='simulated') for c in candles]
 
 
 # ============== 技术指标 ==============
@@ -131,16 +142,12 @@ def calculate_score(df, current_price):
 
 
 def get_signal(score):
-    if score >= 70:
-        return '✅ 买入'
-    elif score >= 50:
-        return '⚠️ 观望'
-    else:
-        return '❌ 谨慎'
+    return research_priority(score)
 
 
 # ============== 主逻辑 ==============
 def fetch_stock_data(symbol):
+    kline = get_kline(symbol, 200)
     df = pd.DataFrame([{
         'date': c.timestamp,
         'open': c.open,
@@ -148,13 +155,14 @@ def fetch_stock_data(symbol):
         'low': c.low,
         'close': c.close,
         'volume': c.volume
-    } for c in get_kline(symbol, 200)])
+    } for c in kline])
     
     if len(df) < 30:
         return None
     
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date').sort_index()
+    df.attrs['data_source'] = getattr(kline[0], 'source', 'unknown')
     return df
 
 
@@ -172,9 +180,14 @@ def analyze_stock(symbol, name, settings):
     pct_from_high = ((current_price - high_52w) / high_52w) * 100
     pct_from_low = ((current_price - low_52w) / low_52w) * 100
     
-    score = calculate_score(df, current_price)
     fundamentals = get_fundamentals(symbol, name, current_price)
-    
+    assessment = build_score_assessment(
+        df,
+        current_price,
+        market_source=df.attrs.get('data_source', 'unknown'),
+        fundamental_source=fundamentals.get('source', 'unavailable'),
+    )
+    score = assessment['score']
     price_history = []
     for idx, row in df.tail(60).iterrows():
         price_history.append({
@@ -189,6 +202,7 @@ def analyze_stock(symbol, name, settings):
         'change': round(pct_change, 2),
         'score': score,
         'signal': get_signal(score),
+        'assessment': assessment,
         'high_52w': round(high_52w, 2),
         'low_52w': round(low_52w, 2),
         'pct_from_high': round(pct_from_high, 1),
@@ -199,24 +213,8 @@ def analyze_stock(symbol, name, settings):
 
 
 def get_fundamentals(symbol, name, current_price):
-    """获取基本面数据（模拟）"""
-    fundamentals_db = {
-        'NVDA': {'pe': 65.2, 'pb': 45.8, 'market_cap': '3.2 万亿', 'sector': 'AI 芯片', 'dividend': '0.03%'},
-        'TSM': {'pe': 28.5, 'pb': 5.2, 'market_cap': '0.9 万亿', 'sector': '半导体代工', 'dividend': '1.5%'},
-        'CRCL': {'pe': 'N/A', 'pb': 2.8, 'market_cap': '0.03 万亿', 'sector': '稳定币', 'dividend': '0.0%'},
-        'TSLA': {'pe': 72.5, 'pb': 12.8, 'market_cap': '0.8 万亿', 'sector': '新能源汽车', 'dividend': '0.0%'},
-        'GOOGL': {'pe': 24.5, 'pb': 6.2, 'market_cap': '2.0 万亿', 'sector': '互联网', 'dividend': '0.0%'},
-        'BABA': {'pe': 12.5, 'pb': 1.8, 'market_cap': '2.1 万亿', 'sector': '电商', 'dividend': '0.0%'},
-    }
-    
-    base = fundamentals_db.get(symbol, {})
-    return {
-        'pe': base.get('pe', round(25 + current_price/20, 1)),
-        'pb': base.get('pb', round(5 + current_price/50, 1)),
-        'market_cap': base.get('market_cap', 'N/A'),
-        'sector': base.get('sector', '其他'),
-        'dividend': base.get('dividend', '0.0%')
-    }
+    """获取长桥真实基本面；不可用时保留空值。"""
+    return fetch_fundamentals(symbol, current_price)
 
 
 # ============== HTML 生成 ==============
@@ -224,6 +222,15 @@ def generate_html(stocks_data, title, update_time):
     cards_html = ''
     for stock in stocks_data:
         color = '#22c55e' if stock['score'] >= 70 else '#f59e0b' if stock['score'] >= 50 else '#ef4444'
+        assessment = stock.get('assessment', {})
+        confidence = {'high': '高', 'medium': '中', 'low': '低'}.get(assessment.get('confidence'), '未知')
+        factor_html = ''.join(
+            f"<li><span>{factor['factor']}</span><strong>{factor['impact']:+d}</strong> {factor['observation']}</li>"
+            for factor in assessment.get('factors', [])
+        )
+        risk_html = ''
+        if assessment.get('risk_flags'):
+            risk_html = '<div class="data-warning">数据提示：' + '、'.join(assessment['risk_flags']) + '</div>'
         cards_html += f'''
         <div class="stock-card" style="border-left: 4px solid {color}">
             <div class="stock-header">
@@ -245,6 +252,9 @@ def generate_html(stocks_data, title, update_time):
                 <div>52 周高：{stock['high_52w']}</div>
                 <div>52 周低：{stock['low_52w']}</div>
             </div>
+            <div class="research-meta">研究置信度：<strong>{confidence}</strong></div>
+            <ul class="factor-list">{factor_html}</ul>
+            {risk_html}
         </div>
         '''
     
@@ -321,6 +331,11 @@ def generate_html(stocks_data, title, update_time):
             color: #9ca3af;
             font-size: 0.9em;
         }}
+        .research-meta {{ margin-top: 14px; color: #cbd5e1; font-size: 0.9em; }}
+        .factor-list {{ margin: 10px 0 0; padding-left: 18px; color: #cbd5e1; font-size: 0.82em; line-height: 1.55; }}
+        .factor-list span {{ display: inline-block; min-width: 68px; color: #f8fafc; }}
+        .factor-list strong {{ display: inline-block; min-width: 30px; color: #93c5fd; }}
+        .data-warning {{ margin-top: 10px; color: #fbbf24; font-size: 0.78em; overflow-wrap: anywhere; }}
     </style>
 </head>
 <body>

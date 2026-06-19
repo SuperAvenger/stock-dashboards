@@ -9,6 +9,11 @@
 - ✅ 飞书推送摘要
 - ✅ GitHub Pages 托管 HTML 看板
 - ✅ 量化评分系统（0-100 分）
+- ✅ 因子解释与数据质量标记（模拟数据会明确降级置信度）
+
+看板中的结论表示个人研究优先级，不是交易指令，也不会连接券商下单。
+
+生产运行不会自动生成模拟行情或基本面。缺少长桥凭证或接口失败时，相关股票会被跳过或标记为数据不可用。仅演示时可显式设置 `ALLOW_SIMULATED_DATA=1` 生成模拟行情；模拟数据始终降低研究置信度。
 
 ## 配置
 
@@ -19,6 +24,7 @@
 | Secret Name | Value |
 |------------|-------|
 | `LONGPORT_APP_KEY` | 长桥 APP_KEY |
+| `LONGPORT_APP_SECRET` | 长桥 APP_SECRET |
 | `LONGPORT_ACCESS_TOKEN` | 长桥 Access Token |
 | `FEISHU_WEBHOOK` | 飞书机器人 Webhook |
 
@@ -30,10 +36,11 @@
 
 ```bash
 # 安装依赖
-pip install pandas numpy requests
+pip install -r requirements.txt
 
 # 设置环境变量
 export LONGPORT_APP_KEY="your_key"
+export LONGPORT_APP_SECRET="your_secret"
 export LONGPORT_ACCESS_TOKEN="your_token"
 export FEISHU_WEBHOOK="your_webhook"
 
@@ -62,3 +69,7 @@ python scripts/push_to_feishu.py
 ## License
 
 MIT
+
+## Roadmap
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for reliability, research, and read-only MCP expansion priorities.
