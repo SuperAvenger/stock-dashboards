@@ -21,21 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('FactorEngineV3')
 
-# 全局 QuoteContext 缓存
-_quote_ctx = None
-
-def get_quote_context():
-    """获取 QuoteContext 单例"""
-    global _quote_ctx
-    if _quote_ctx is None:
-        config = load_config()
-        cfg = Config(
-            app_key=config.get('APP_KEY', ''),
-            app_secret=config.get('APP_SECRET', ''),
-            access_token=config.get('ACCESS_TOKEN', '')
-        )
-        _quote_ctx = QuoteContext(cfg)
-    return _quote_ctx
+from longport_simple_client import get_quote_context
 
 class FactorEngineV3:
     """因子计算引擎 v3 - 长桥 API 数据源"""

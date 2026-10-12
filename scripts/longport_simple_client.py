@@ -93,57 +93,40 @@ def _api_request(method, path, params=None, config=None):
         return None
 
 
-def get_kline(symbol='9988.HK', count=200):
-    """
-    获取 K 线数据 (日线)
-    返回: list of dict with keys: timestamp, open, high, low, close, volume
-    """
-    # 转换代码格式: 09988.HK -> 9988.HK
-    code = symbol.lstrip('0')
-    if not code.endswith('.HK') and not code.endswith('.US'):
-        code = symbol
-
-    data = _api_request('GET', '/quote/v1/candlestick', {
-        'symbol': code,
-        'period': 'day',
-        'count': str(count),
-        'adjust_type': '0',  # 不复权
-    })
-
-    if not data or 'candlesticks' not in data:
-        # fallback: 尝试用 SDK
-        return _get_kline_sdk(symbol, count)
-
-    result = []
-    for c in data['candlesticks']:
-        result.append({
-            'timestamp': datetime.fromtimestamp(c.get('timestamp', 0)),
-            'open': float(c.get('open', 0)),
-            'high': float(c.get('high', 0)),
-            'low': float(c.get('low', 0)),
-            'close': float(c.get('close', 0)),
-            'volume': float(c.get('volume', 0)),
-        })
-
-    return result
+_quote_context = None
 
 
-def _get_kline_sdk(symbol, count):
-    """Fallback: 使用 longport SDK"""
-    try:
+def get_quote_context():
+    """Reuse an authenticated SDK context; current SDK uses a config factory."""
+    global _quote_context
+    if _quote_context is None:
+        from longport.openapi import Config, QuoteContext
         config = load_config()
-        from longport.openapi import Config, QuoteContext, Period, AdjustType
-        cfg = Config(
+        factory = getattr(Config, 'from_apikey', Config)
+        cfg = factory(
             app_key=config.get('APP_KEY', ''),
             app_secret=config.get('APP_SECRET', ''),
-            access_token=config.get('ACCESS_TOKEN', '')
+            access_token=config.get('ACCESS_TOKEN', ''),
         )
-        quote_ctx = QuoteContext(cfg)
-        kline = quote_ctx.candlesticks(symbol, Period.Day, count, AdjustType.NoAdjust)
-        return list(kline) if kline else None
-    except Exception as e:
-        print(f"SDK fallback failed: {e}")
-        return None
+        _quote_context = QuoteContext(cfg)
+    return _quote_context
+
+
+def normalize_symbol(symbol):
+    if symbol.endswith('.HK'):
+        return symbol.lstrip('0')
+    return symbol if '.' in symbol else symbol + '.US'
+
+
+def get_kline(symbol='9988.HK', count=200):
+    """Fetch typed candles through the SDK, avoiding the retired REST endpoint."""
+    from longport.openapi import Period, AdjustType
+    candles = get_quote_context().candlesticks(
+        normalize_symbol(symbol), Period.Day, count, AdjustType.NoAdjust
+    )
+    if not candles:
+        raise RuntimeError(f'No candlesticks returned for {symbol}')
+    return list(candles)
 
 
 def get_quote(symbol):

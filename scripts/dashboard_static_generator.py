@@ -926,6 +926,9 @@ def main():
         print(f"  综合：{analysis['total_score']} | {analysis['rating']} | {analysis['action']}")
         print(f"  维度：估={d['valuation']['score']:>3} 成={d['growth']['score']:>3} 质={d['quality']['score']:>3} 情={d['sentiment']['score']:>3} 技={d['technical']['score']:>3}")
     
+    if not stocks_data:
+        raise RuntimeError('No stock data generated; refusing to publish an empty dashboard')
+
     update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     html_content = generate_html(stocks_data, update_time)

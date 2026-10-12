@@ -657,6 +657,9 @@ def main():
             print(f"  维度：动={d['momentum']['score']:>3} 价={d['value']['score']:>3} 成={d['growth']['score']:>3} 质={d['quality']['score']:>3} 情={d['sentiment']['score']:>3}")
             print(f"  数据源：{d['value']['details'].get('source', 'Unknown')}")
     
+    if not stocks_data:
+        raise RuntimeError('No stock data generated; refusing to publish an empty dashboard')
+
     update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     html_content = generate_html(stocks_data, update_time)

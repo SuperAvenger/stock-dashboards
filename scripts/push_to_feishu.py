@@ -229,8 +229,7 @@ def format_change_summary(stock, prev_state, market='hk'):
 def push_to_feishu(hk_data, us_data, prev_state):
     """智能推送：只推送有变化的、未截止的股票"""
     if not FEISHU_WEBHOOK:
-        print("⚠️ 未配置飞书 Webhook")
-        return
+        raise RuntimeError("未配置飞书 Webhook")
 
     hk_stocks = hk_data.get('stocks', [])
     us_stocks = us_data.get('stocks', [])
@@ -240,12 +239,10 @@ def push_to_feishu(hk_data, us_data, prev_state):
     hk_changed, hk_expired = detect_changes(hk_stocks, prev_state, 'hk')
     us_changed, us_expired = detect_changes(us_stocks, prev_state, 'us')
 
-    # 更新状态（无论是否有变化都更新，包括截止的股票）
+    # 有变化时仅在飞书确认成功后保存，避免失败消息被去重吞掉。
     new_state = dict(prev_state)
     new_state['hk'] = build_current_state(hk_stocks, 'hk')
     new_state['us'] = build_current_state(us_stocks, 'us')
-    new_state['last_push'] = datetime.now().isoformat()
-    save_state(new_state)
 
     total_changed = len(hk_changed) + len(us_changed)
     total_expired = len(hk_expired) + len(us_expired)
@@ -256,6 +253,7 @@ def push_to_feishu(hk_data, us_data, prev_state):
             print(f"   - {s['symbol']} {s['name']} ({s.get('technical',{}).get('signal','')}/{s.get('rating','')})")
 
     if total_changed == 0:
+        save_state(new_state)
         print(f"📊 无变化（港股 {len(hk_stocks)} 只、美股 {len(us_stocks)} 只均无信号变化），跳过推送")
         return
 
@@ -322,15 +320,15 @@ def push_to_feishu(hk_data, us_data, prev_state):
         }
     }
 
-    try:
-        resp = requests.post(FEISHU_WEBHOOK, json=payload, timeout=30)
-        print(f"\n飞书推送：{resp.status_code}")
-        if resp.status_code == 200:
-            print("✅ 推送成功！")
-        else:
-            print(f"❌ 推送失败：{resp.text[:200]}")
-    except Exception as e:
-        print(f"推送失败：{e}")
+    resp = requests.post(FEISHU_WEBHOOK, json=payload, timeout=30)
+    resp.raise_for_status()
+    result = resp.json()
+    code = result.get('code', result.get('StatusCode'))
+    if code not in (0, '0'):
+        raise RuntimeError(f"飞书拒绝推送，业务码：{code}")
+    new_state['last_push'] = datetime.now().isoformat()
+    save_state(new_state)
+    print("✅ 飞书确认推送成功！")
 
 
 def main():
