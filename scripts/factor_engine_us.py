@@ -227,7 +227,7 @@ class USStockFactorEngine:
             components.append((max(0, min(100, 50 - (pb - 3) * 10)), 0.3))
         if ps is not None and ps > 0:
             components.append((max(0, min(100, 50 - (ps - 5) * 8)), 0.2))
-        if dividend_yield is not None:
+        if dividend_yield is not None and dividend_yield >= 0:
             components.append((max(0, min(50, dividend_yield * 10)), 0.1))
 
         value_score = (

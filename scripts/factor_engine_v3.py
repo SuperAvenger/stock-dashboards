@@ -148,7 +148,7 @@ class FactorEngineV3:
         
         # 股息率因子 (越高越好)
         dy = fundamentals.get('dividend_yield')
-        if dy is not None and dy > 0:
+        if dy is not None and dy >= 0:
             dy = float(dy)
             # 股息率>5% 得 100 分，0% 得 0 分
             factors['value_dividend_score'] = min(100, dy * 20)
