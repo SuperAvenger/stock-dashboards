@@ -2,7 +2,7 @@
 """
 美股监控看板生成器
 基于《打开量化投资的黑箱》框架
-数据源优先级：长桥 API → Yahoo Finance → 默认值
+基本面只展示真实可用数据；缺失项显示为 N/A，不参与因子评分。
 """
 
 import sys
@@ -375,7 +375,7 @@ def generate_html(stocks_data, update_time):
         action = stock['action']
         price = stock['current_price']
         dimensions = stock['dimensions']
-        data_source = dimensions.get('value', {}).get('source', 'Unknown')
+        data_source = stock.get('fundamentals', {}).get('source', 'Unavailable')
         
         # 信号样式
         signal_class = {
@@ -400,16 +400,34 @@ def generate_html(stocks_data, update_time):
         
         # 维度颜色
         def get_dim_color(val):
+            if val is None: return '#6b7280'
             if val >= 70: return '#10b981'
             elif val >= 50: return '#3b82f6'
             elif val >= 30: return '#fbbf24'
             else: return '#ef4444'
+
+        def render_dimension(key, label):
+            value = dimensions[key].get('score')
+            shown = value if value is not None else 'N/A'
+            width = value if value is not None else 0
+            return f'''<div class="dimension-item">
+                        <span class="dimension-name">{label}</span>
+                        <div class="dimension-bar">
+                            <div class="dimension-fill" style="width: {width}%; background: {get_dim_color(value)}"></div>
+                        </div>
+                        <span class="dimension-value">{shown}</span>
+                    </div>'''
+
+        def format_metric(value, suffix=''):
+            if value is None:
+                return 'N/A'
+            return f"${value}" if suffix == '$' else f"{value}{suffix}"
         
         # 数据源样式
         source_class = {
             'Longbridge': 'source-longbridge',
             'Yahoo Finance': 'source-yahoo',
-            'Default': 'source-default',
+            'Unavailable': 'source-default',
         }.get(data_source, 'source-default')
         
         html += f'''
@@ -429,41 +447,11 @@ def generate_html(stocks_data, update_time):
                 </div>
                 
                 <div class="dimensions">
-                    <div class="dimension-item">
-                        <span class="dimension-name">📈 动量</span>
-                        <div class="dimension-bar">
-                            <div class="dimension-fill" style="width: {dimensions['momentum']['score']}%; background: {get_dim_color(dimensions['momentum']['score'])}"></div>
-                        </div>
-                        <span class="dimension-value">{dimensions['momentum']['score']}</span>
-                    </div>
-                    <div class="dimension-item">
-                        <span class="dimension-name">💰 价值</span>
-                        <div class="dimension-bar">
-                            <div class="dimension-fill" style="width: {dimensions['value']['score']}%; background: {get_dim_color(dimensions['value']['score'])}"></div>
-                        </div>
-                        <span class="dimension-value">{dimensions['value']['score']}</span>
-                    </div>
-                    <div class="dimension-item">
-                        <span class="dimension-name">🚀 成长</span>
-                        <div class="dimension-bar">
-                            <div class="dimension-fill" style="width: {dimensions['growth']['score']}%; background: {get_dim_color(dimensions['growth']['score'])}"></div>
-                        </div>
-                        <span class="dimension-value">{dimensions['growth']['score']}</span>
-                    </div>
-                    <div class="dimension-item">
-                        <span class="dimension-name">💎 质量</span>
-                        <div class="dimension-bar">
-                            <div class="dimension-fill" style="width: {dimensions['quality']['score']}%; background: {get_dim_color(dimensions['quality']['score'])}"></div>
-                        </div>
-                        <span class="dimension-value">{dimensions['quality']['score']}</span>
-                    </div>
-                    <div class="dimension-item">
-                        <span class="dimension-name">😊 情绪</span>
-                        <div class="dimension-bar">
-                            <div class="dimension-fill" style="width: {dimensions['sentiment']['score']}%; background: {get_dim_color(dimensions['sentiment']['score'])}"></div>
-                        </div>
-                        <span class="dimension-value">{dimensions['sentiment']['score']}</span>
-                    </div>
+                    {render_dimension('momentum', '📈 动量')}
+                    {render_dimension('value', '💰 价值')}
+                    {render_dimension('growth', '🚀 成长')}
+                    {render_dimension('quality', '💎 质量')}
+                    {render_dimension('sentiment', '😊 情绪')}
                 </div>
                 
                 <div class="details-grid">
@@ -472,27 +460,27 @@ def generate_html(stocks_data, update_time):
                         <div class="detail-grid">
                             <div class="detail-item">
                                 <span class="detail-label">PE(TTM)</span>
-                                <span class="detail-value">{stock['fundamentals']['pe_ttm']}</span>
+                                <span class="detail-value">{format_metric(stock['fundamentals'].get('pe_ttm'))}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">PB</span>
-                                <span class="detail-value">{stock['fundamentals']['pb']}</span>
+                                <span class="detail-value">{format_metric(stock['fundamentals'].get('pb'))}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">ROE</span>
-                                <span class="detail-value">{stock['fundamentals']['roe']}%</span>
+                                <span class="detail-value">{format_metric(stock['fundamentals'].get('roe'), '%')}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">股息率</span>
-                                <span class="detail-value">{stock['fundamentals']['dividend_yield']}%</span>
+                                <span class="detail-value">{format_metric(stock['fundamentals'].get('dividend_yield'), '%')}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">EPS</span>
-                                <span class="detail-value">${stock['fundamentals']['eps']}</span>
+                                <span class="detail-value">{format_metric(stock['fundamentals'].get('eps'), '$')}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">BPS</span>
-                                <span class="detail-value">${stock['fundamentals']['bps']}</span>
+                                <span class="detail-value">{format_metric(stock['fundamentals'].get('bps'), '$')}</span>
                             </div>
                         </div>
                     </div>
@@ -558,7 +546,7 @@ def generate_html(stocks_data, update_time):
         
         <footer>
             <p>🥔 美股监控看板 v1.0 | 基于《打开量化投资的黑箱》因子框架</p>
-            <p>数据源优先级：长桥 API → Yahoo Finance → 默认值</p>
+            <p>基本面数据来自公开行情源；缺失项标注 N/A</p>
             <p>因子权重：动量 25% | 价值 20% | 成长 20% | 质量 20% | 情绪 15%</p>
         </footer>
     </div>

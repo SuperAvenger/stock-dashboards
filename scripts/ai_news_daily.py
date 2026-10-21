@@ -7,6 +7,7 @@ v2: 增加英文→中文翻译（非中文标题自动翻译）
 import os
 import json
 import re
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -22,7 +23,10 @@ except ImportError:
     print("⚠️ deep-translator 未安装，跳过翻译")
 
 FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK", "")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+TRANSLATION_CACHE_FILE = Path(__file__).parent.parent / "output" / "translation-cache.json"
+TRANSLATION_INTERVAL_SECONDS = 0.8
 
 
 def is_chinese(text):
@@ -39,12 +43,96 @@ def translate_title(title):
         return title
     if is_chinese(title):
         return title  # 已经是中文，不翻译
+    last_error = None
+    for attempt, wait_seconds in enumerate((0, 1, 2), start=1):
+        if wait_seconds:
+            time.sleep(wait_seconds)
+        try:
+            translated = TRANSLATOR.translate(title[:200])
+            if translated and is_chinese(translated):
+                return translated
+            last_error = ValueError("翻译结果没有中文字符")
+        except Exception as e:
+            last_error = e
+        print(f"  翻译尝试 {attempt}/3 失败: {last_error}")
+    return None
+
+
+def translate_titles_deepseek(indexed_titles):
+    """Batch-translate titles with DeepSeek to avoid per-title throttling."""
+    if not DEEPSEEK_API_KEY or not indexed_titles:
+        return {}
+
+    translated = {}
+    batch_size = 8
+    for offset in range(0, len(indexed_titles), batch_size):
+        batch = indexed_titles[offset:offset + batch_size]
+        numbered_titles = [f"{index}: {title}" for index, title in batch]
+        prompt = (
+            "把下面的英文科技/AI资讯标题逐条翻译成准确、自然、简洁的简体中文。"
+            "保留产品名、人名、公司名、型号和数字；不要总结、解释或增加事实。"
+            "只返回 JSON 对象，格式为 {\"translations\":[{\"index\":原编号,\"text\":\"中文译文\"}]}。\n\n"
+            + "\n".join(numbered_titles)
+        )
+        payload = {
+            "model": "deepseek-flash",
+            "messages": [
+                {"role": "system", "content": "你是严谨的科技新闻翻译。必须输出有效 JSON。"},
+                {"role": "user", "content": prompt},
+            ],
+            "response_format": {"type": "json_object"},
+            "thinking": {"type": "disabled"},
+            "temperature": 0,
+            "stream": False,
+        }
+        for attempt, wait_seconds in enumerate((0, 2, 5), start=1):
+            if wait_seconds:
+                time.sleep(wait_seconds)
+            try:
+                response = requests.post(
+                    "https://api.deepseek.com/chat/completions",
+                    headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+                    json=payload,
+                    timeout=45,
+                )
+                response.raise_for_status()
+                result = response.json()
+                choice = result["choices"][0]
+                if choice.get("finish_reason") == "length":
+                    raise ValueError("DeepSeek response was truncated")
+                content = choice["message"]["content"]
+                decoded = json.loads(content)
+                entries = decoded.get("translations", [])
+                for entry in entries:
+                    index = int(entry["index"])
+                    value = str(entry.get("text", "")).strip()
+                    if value and is_chinese(value):
+                        translated[index] = value
+                missing = [index for index, _ in batch if index not in translated]
+                if missing:
+                    print(f"  DeepSeek 本批有 {len(missing)} 条未返回有效中文译文")
+                break
+            except Exception as e:
+                print(f"  DeepSeek 批量翻译尝试 {attempt}/3 失败: {type(e).__name__}: {e}")
+        if offset + batch_size < len(indexed_titles):
+            time.sleep(0.5)
+    return translated
+
+
+def load_translation_cache():
     try:
-        translated = TRANSLATOR.translate(title[:200])  # 限制长度避免 API 限制
-        return translated if translated else title
-    except Exception as e:
-        print(f"  翻译失败: {e}")
-        return title
+        data = json.loads(TRANSLATION_CACHE_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_translation_cache(cache):
+    TRANSLATION_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    TRANSLATION_CACHE_FILE.write_text(
+        json.dumps(dict(list(cache.items())[-1000:]), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def fetch_rss(url, source_name, max_items=10):
@@ -187,8 +275,9 @@ def dedup(items):
 def push_to_feishu(items):
     """推送飞书"""
     if not FEISHU_WEBHOOK:
-        print("FEISHU_WEBHOOK not set")
-        return
+        raise RuntimeError("FEISHU_WEBHOOK not set")
+    if not items:
+        raise RuntimeError("没有通过中文校验的资讯，已停止推送")
 
     # 按来源分组
     by_source = {}
@@ -224,12 +313,14 @@ def push_to_feishu(items):
     try:
         resp = requests.post(FEISHU_WEBHOOK, json=payload, timeout=30)
         print(f"飞书推送: {resp.status_code}")
-        if resp.status_code == 200:
-            print("✅ 推送成功")
-        else:
-            print(f"❌ {resp.text[:200]}")
+        resp.raise_for_status()
+        result = resp.json()
+        code = result.get("code", result.get("StatusCode"))
+        if code not in (0, "0"):
+            raise RuntimeError(f"飞书拒绝资讯推送，业务码：{code}")
+        print("✅ 飞书确认资讯推送成功")
     except Exception as e:
-        print(f"推送失败: {e}")
+        raise RuntimeError(f"资讯推送失败: {e}") from e
 
 
 def main():
@@ -264,27 +355,57 @@ def main():
     all_items = dedup(all_items)
     print(f"\n共采集 {len(all_items)} 条 AI 资讯")
 
-    # 翻译英文标题 (批量翻译，减少 API 调用)
-    if HAS_TRANSLATOR:
+    # 优先用 DeepSeek 批量翻译；缺少密钥或批次失败时，使用带缓存和退避的 Google 备用翻译。
+    cache = load_translation_cache()
+    if HAS_TRANSLATOR or DEEPSEEK_API_KEY:
         print("\n>>> 翻译英文标题...")
         en_titles = [(i, item['title']) for i, item in enumerate(all_items) if not is_chinese(item['title'])]
         if en_titles:
-            try:
-                # 批量翻译 (deep-translator 支持)
-                original_texts = [t[1][:200] for t in en_titles]
-                translated_texts = TRANSLATOR.translate_batch(original_texts)
-                for (idx, _), translated in zip(en_titles, translated_texts):
-                    if translated:
-                        all_items[idx]['title_original'] = all_items[idx]['title']
-                        all_items[idx]['title'] = translated
-                print(f"  批量翻译了 {len(en_titles)} 条")
-            except Exception as e:
-                print(f"  批量翻译失败，回退逐条翻译: {e}")
-                for idx, title in en_titles:
+            pending = []
+            for idx, title in en_titles:
+                cached = cache.get(title)
+                if cached and is_chinese(cached):
                     all_items[idx]['title_original'] = title
-                    all_items[idx]['title'] = translate_title(title)
+                    all_items[idx]['title'] = cached
+                else:
+                    pending.append((idx, title))
+
+            deepseek_translations = {}
+            if DEEPSEEK_API_KEY and pending:
+                print(f"  DeepSeek 批量翻译 {len(pending)} 条标题...")
+                deepseek_translations = translate_titles_deepseek(pending)
+
+            failed_titles = []
+            last_request_at = 0.0
+            for idx, title in pending:
+                translated = deepseek_translations.get(idx)
+                if translated:
+                    print(f"  DeepSeek 已翻译: {title[:70]}")
+                elif HAS_TRANSLATOR:
+                    delay = TRANSLATION_INTERVAL_SECONDS - (time.monotonic() - last_request_at)
+                    if delay > 0:
+                        time.sleep(delay)
+                    translated = translate_title(title)
+                    last_request_at = time.monotonic()
+                else:
+                    translated = None
+                if translated and is_chinese(translated):
+                    all_items[idx]['title_original'] = title
+                    all_items[idx]['title'] = translated
+                    cache[title] = translated
+                else:
+                    failed_titles.append(title)
+                    print(f"  丢弃未能翻译的标题: {title[:100]}")
+            if failed_titles:
+                failed_set = set(failed_titles)
+                all_items = [item for item in all_items if item.get('title') not in failed_set]
+            save_translation_cache(cache)
+            print(f"  中文标题可用 {len(all_items)} 条；本次翻译失败 {len(failed_titles)} 条")
     else:
-        print("\n⚠️ 跳过翻译（translator 不可用）")
+        raise RuntimeError("未配置 DEEPSEEK_API_KEY，且 Google 备用翻译组件不可用；已停止发送英文资讯")
+
+    if not all(is_chinese(item['title']) for item in all_items):
+        raise RuntimeError("日报含未翻译标题，已停止推送")
 
     # 保存
     output_dir = Path(__file__).parent.parent / "output"

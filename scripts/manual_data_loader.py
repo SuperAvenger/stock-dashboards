@@ -6,27 +6,35 @@
 
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict
 
 class ManualDataLoader:
     """手动数据加载器"""
     
-    def __init__(self, filepath: str = None):
+    def __init__(self, filepath: str = None, symbol: str = '09988.HK', max_age_days: int = 30):
         if filepath is None:
             filepath = os.path.join(
                 os.path.dirname(__file__), 
                 'manual_data.csv'
             )
         self.filepath = filepath
+        self.symbol = symbol.upper()
+        self.max_age_days = max_age_days
         self.data = {}
         self.last_update = None
     
     def load(self) -> Dict:
         """加载手动数据"""
+        # manual_data.csv is explicitly an Alibaba-only template. Never apply it
+        # to other Hong Kong stocks.
+        if self.symbol not in ('09988.HK', '9988.HK'):
+            print(f"ℹ️ {self.symbol} 无对应手动基本面数据")
+            return {}
+
         if not os.path.exists(self.filepath):
             print(f"⚠️ 手动数据文件不存在：{self.filepath}")
-            return self._get_default_data()
+            return {}
         
         try:
             # 读取 CSV (跳过注释行)
@@ -55,25 +63,29 @@ class ManualDataLoader:
                     except:
                         pass
             
-            print(f"✅ 加载手动数据成功 (更新：{self.last_update})")
+            if not self.last_update:
+                print("⚠️ 手动数据缺少 last_update，已忽略")
+                self.data = {}
+                return {}
+            try:
+                update_date = date.fromisoformat(self.last_update[:10])
+            except ValueError:
+                print(f"⚠️ 手动数据更新时间无效：{self.last_update}，已忽略")
+                self.data = {}
+                return {}
+            age_days = (datetime.now().date() - update_date).days
+            if age_days < 0 or age_days > self.max_age_days:
+                print(f"⚠️ 手动数据已过期 ({age_days} 天；上限 {self.max_age_days} 天)，已忽略")
+                self.data = {}
+                return {}
+
+            print(f"✅ 加载 {self.symbol} 手动数据成功 (更新：{self.last_update})")
             return self.data
             
         except Exception as e:
             print(f"❌ 加载手动数据失败：{e}")
-            return self._get_default_data()
-    
-    def _get_default_data(self) -> Dict:
-        """返回默认数据"""
-        return {
-            'analyst_rating': 3.0,  # 中性
-            'target_price': 140.0,
-            'num_analysts': 0,
-            'next_year_eps': 8.0,
-            'earnings_growth_forecast': 0.0,
-            'short_ratio': 0.05,
-            'insider_net_shares': 0,
-            'last_update': None
-        }
+            self.data = {}
+            return {}
     
     def get_sentiment_factors(self) -> Dict:
         """转换为情绪因子"""
@@ -82,37 +94,45 @@ class ManualDataLoader:
         factors = {}
         
         # 分析师评级因子 (0-100)
-        rating = data.get('analyst_rating', 3.0)
-        factors['manual_analyst_rating'] = rating / 5 * 100
+        rating = data.get('analyst_rating')
+        if rating is not None:
+            factors['manual_analyst_rating'] = rating / 5 * 100
         
         # 目标价空间 (0-100)
         # (需要当前价格，由外部传入)
-        factors['manual_target_upside'] = 50  # 默认中性
+        # Target upside is set only when a fresh target price is available.
         
         # 分析师覆盖度 (0-100)
-        num = data.get('num_analysts', 0)
-        factors['manual_analyst_coverage'] = min(100, num * 5)
+        num = data.get('num_analysts')
+        if num is not None:
+            factors['manual_analyst_coverage'] = min(100, num * 5)
         
         # 盈利增长预期 (0-100)
-        growth = data.get('earnings_growth_forecast', 0)
-        factors['manual_growth_expectation'] = min(100, max(0, 50 + growth * 2))
+        growth = data.get('earnings_growth_forecast')
+        if growth is not None:
+            factors['manual_growth_expectation'] = min(100, max(0, 50 + growth * 2))
         
         # 卖空比例 (越低越好，0-100)
-        short = data.get('short_ratio', 0.05)
-        factors['manual_short_ratio'] = max(0, min(100, 100 - short * 100))
+        short = data.get('short_ratio')
+        if short is not None:
+            factors['manual_short_ratio'] = max(0, min(100, 100 - short))
         
         # 内部人交易 (正=好，0-100)
-        insider = data.get('insider_net_shares', 0)
-        factors['manual_insider_trading'] = min(100, max(0, 50 + insider / 10000))
+        insider = data.get('insider_net_shares')
+        if insider is not None:
+            factors['manual_insider_trading'] = min(100, max(0, 50 + insider / 10000))
         
         return factors
     
     def set_target_upside(self, current_price: float):
         """设置目标价空间"""
-        target = self.data.get('target_price', current_price)
+        target = self.data.get('target_price')
+        if target is None or current_price is None or current_price <= 0:
+            return None
         upside = (target - current_price) / current_price * 100
         # 转换为 0-100 分数
         self.data['target_upside_score'] = min(100, max(0, 50 + upside * 2))
+        return self.data['target_upside_score']
 
 
 # ============ 测试 ============

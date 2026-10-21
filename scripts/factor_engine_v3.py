@@ -34,7 +34,7 @@ class FactorEngineV3:
         self.quote_ctx = get_quote_context()
         
         # 手动数据加载器
-        self.manual_loader = ManualDataLoader()
+        self.manual_loader = ManualDataLoader(symbol=self.symbol)
         
         self.factors = {}
         self.factor_count = 0
@@ -80,7 +80,9 @@ class FactorEngineV3:
                 
                 pe_str = f"{pe_ttm:.2f}" if pe_ttm else "N/A"
                 pb_str = f"{pb:.2f}" if pb else "N/A"
-                logger.info(f"长桥数据：PE={pe_str} | PB={pb_str} | 股息率={info.dividend_yield:.2f}%")
+                dividend_yield = info.dividend_yield
+                div_str = f"{float(dividend_yield):.2f}%" if dividend_yield is not None else "N/A"
+                logger.info(f"长桥数据：PE={pe_str} | PB={pb_str} | 股息率={div_str}")
             else:
                 logger.warning(f"无法获取 {self.symbol} 静态信息")
                 self.fundamentals = self._empty_fundamentals()
@@ -110,8 +112,9 @@ class FactorEngineV3:
             manual_factors = self.manual_loader.get_sentiment_factors()
             
             if current_price:
-                self.manual_loader.set_target_upside(current_price)
-                self.fundamentals['target_upside'] = self.manual_loader.data.get('target_upside_score', 50)
+                target_upside = self.manual_loader.set_target_upside(current_price)
+                if target_upside is not None:
+                    self.fundamentals['target_upside'] = target_upside
             
             self.fundamentals.update({
                 'analyst_rating': manual_factors.get('manual_analyst_rating'),

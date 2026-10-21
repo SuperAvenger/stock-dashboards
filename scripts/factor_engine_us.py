@@ -10,10 +10,7 @@
 - 质量因子 (20%): ROE/ROIC、毛利率、负债率
 - 市场情绪 (15%): 分析师评级、财报季效应、波动率
 
-数据源优先级:
-1. 长桥 API (Longbridge) - 优先
-2. Yahoo Finance - 备选
-3. 默认中性值 - 兜底
+基本面数据仅使用实际来源。没有取到的数据保持为空，不以默认值参与评分。
 """
 
 import sys
@@ -35,7 +32,7 @@ try:
     YF_AVAILABLE = True
 except ImportError:
     YF_AVAILABLE = False
-    print("⚠️ yfinance 未安装，基本面数据将使用默认值")
+    print("⚠️ yfinance 未安装，美股基本面数据将显示为暂无数据")
 
 # ============ 配置 ============
 US_STOCKS = {
@@ -73,83 +70,62 @@ class USStockFactorEngine:
         self.symbol = symbol
         self.df = None
         self.fundamentals = {}
+        self._fundamentals_loaded = False
     
     def get_fundamentals(self) -> dict:
         """
-        获取基本面数据 (优先级：长桥 → Yahoo → 默认值)
+        获取实际基本面数据。缺失指标保持 None，不使用估算值。
         
         Returns:
             dict: PE, PB, PS, 股息率，ROE, 盈利增长，营收增长
         """
-        # 尝试 1: 从长桥 API 获取
-        try:
-            kline_extended = get_kline(self.symbol, 1, include_extended=True)
-            if kline_extended and len(kline_extended) > 0:
-                data = kline_extended[0]
-                pe = data.get('pe_ttm', 0) if isinstance(data, dict) else getattr(data, 'pe_ttm', 0)
-                pb = data.get('pb', 0) if isinstance(data, dict) else getattr(data, 'pb', 0)
-                ps = data.get('ps_ttm', 0) if isinstance(data, dict) else getattr(data, 'ps_ttm', 0)
-                div = data.get('dividend_yield', 0) if isinstance(data, dict) else getattr(data, 'dividend_yield', 0)
-                
-                # 检查长桥数据是否有效 (非 0)
-                if pe and pe > 0:
-                    self.fundamentals['source'] = 'Longbridge'
-                    return {
-                        'pe_ttm': float(pe),
-                        'pb': float(pb),
-                        'ps_ttm': float(ps),
-                        'dividend_yield': float(div),
-                        'roe': 15.0,  # 长桥无 ROE，用默认值
-                        'earnings_growth': 10.0,  # 长桥无增长数据
-                        'revenue_growth': 10.0,
-                        'debt_to_equity': 0.5,
-                    }
-        except Exception as e:
-            pass
-        
-        # 尝试 2: 从 Yahoo Finance 获取
+        if self._fundamentals_loaded:
+            return self.fundamentals.copy()
+
+        data = {
+            'pe_ttm': None, 'pb': None, 'ps_ttm': None,
+            'dividend_yield': None, 'roe': None, 'earnings_growth': None,
+            'revenue_growth': None, 'debt_to_equity': None,
+            'eps': None, 'bps': None, 'source': 'Unavailable',
+        }
+
+        # Yahoo Finance supplies the actual reported/market-derived values.
         if YF_AVAILABLE:
             try:
-                # 去掉.US 后缀
                 yf_symbol = self.symbol.replace('.US', '')
                 stock = yf.Ticker(yf_symbol)
                 info = stock.info
-                
-                pe = info.get('trailingPE')
-                pb = info.get('priceToBook')
-                ps = info.get('priceToSalesTrailing12Months')
-                div = info.get('dividendYield', 0)
-                roe = info.get('returnOnEquity')
-                earnings_growth = info.get('earningsGrowth')
-                revenue_growth = info.get('revenueGrowth')
-                
-                if pe and pe > 0:
-                    self.fundamentals['source'] = 'Yahoo Finance'
-                    return {
-                        'pe_ttm': float(pe),
-                        'pb': float(pb) if pb else 2.0,
-                        'ps_ttm': float(ps) if ps else 3.0,
-                        'dividend_yield': float(div) * 100 if div else 0,  # 转换为百分比
-                        'roe': float(roe) * 100 if roe else 15.0,  # 转换为百分比
-                        'earnings_growth': float(earnings_growth) * 100 if earnings_growth else 10.0,
-                        'revenue_growth': float(revenue_growth) * 100 if revenue_growth else 10.0,
-                        'debt_to_equity': 0.5,
-                    }
+                def number(key, multiplier=1.0):
+                    value = info.get(key)
+                    try:
+                        value = float(value)
+                        return value * multiplier if np.isfinite(value) else None
+                    except (TypeError, ValueError):
+                        return None
+
+                data.update({
+                    'pe_ttm': number('trailingPE'),
+                    'pb': number('priceToBook'),
+                    'ps_ttm': number('priceToSalesTrailing12Months'),
+                    'dividend_yield': number('dividendYield', 100),
+                    'roe': number('returnOnEquity', 100),
+                    'earnings_growth': number('earningsGrowth', 100),
+                    'revenue_growth': number('revenueGrowth', 100),
+                    # Yahoo reports debtToEquity as a percentage, e.g. 75 means 0.75.
+                    'debt_to_equity': number('debtToEquity', 0.01),
+                    'eps': number('trailingEps'),
+                    'bps': number('bookValue'),
+                })
+                if any(value is not None for key, value in data.items() if key != 'source'):
+                    data['source'] = 'Yahoo Finance'
             except Exception as e:
-                pass
-        
-        # 尝试 3: 返回默认中性值
-        self.fundamentals['source'] = 'Default'
-        return {
-            'pe_ttm': 20.0,
-            'pb': 2.0,
-            'ps_ttm': 3.0,
-            'dividend_yield': 1.0,
-            'roe': 15.0,
-            'earnings_growth': 10.0,
-            'revenue_growth': 10.0,
-            'debt_to_equity': 0.5,
-        }
+                print(f"⚠️ {self.symbol} Yahoo Finance 基本面读取失败：{e}")
+
+        self.fundamentals = data
+        self._fundamentals_loaded = True
+        if data['source'] == 'Unavailable':
+            print(f"⚠️ {self.symbol} 无可用基本面数据；本次不以估算值评分")
+        return data.copy()
     
     def get_kline_data(self, bars: int = 200) -> pd.DataFrame:
         """获取 K 线数据"""
@@ -238,33 +214,33 @@ class USStockFactorEngine:
         """
         fundamentals = self.get_fundamentals()
         
-        pe = fundamentals.get('pe_ttm', 20)
-        pb = fundamentals.get('pb', 2)
-        ps = fundamentals.get('ps_ttm', 3)
-        dividend_yield = fundamentals.get('dividend_yield', 0)
-        
-        # PE 得分 (低 PE=高分，行业调整)
-        # 科技股 PE 通常较高，用分位数更合理
-        pe_score = max(0, min(100, (50 - (pe - 20) * 2)))
-        
-        # PB 得分
-        pb_score = max(0, min(100, (50 - (pb - 3) * 10)))
-        
-        # PS 得分
-        ps_score = max(0, min(100, (50 - (ps - 5) * 8)))
-        
-        # 股息率得分 (美股成长股通常不分红，权重降低)
-        div_score = min(50, dividend_yield * 10)
-        
-        value_score = (pe_score * 0.4 + pb_score * 0.3 + ps_score * 0.2 + div_score * 0.1)
+        pe = fundamentals.get('pe_ttm')
+        pb = fundamentals.get('pb')
+        ps = fundamentals.get('ps_ttm')
+        dividend_yield = fundamentals.get('dividend_yield')
+
+        components = []
+        if pe is not None and pe > 0:
+            components.append((max(0, min(100, 50 - (pe - 20) * 2)), 0.4))
+        if pb is not None and pb > 0:
+            components.append((max(0, min(100, 50 - (pb - 3) * 10)), 0.3))
+        if ps is not None and ps > 0:
+            components.append((max(0, min(100, 50 - (ps - 5) * 8)), 0.2))
+        if dividend_yield is not None:
+            components.append((max(0, min(50, dividend_yield * 10)), 0.1))
+
+        value_score = (
+            sum(score * weight for score, weight in components) / sum(weight for _, weight in components)
+            if components else None
+        )
         
         return {
-            'score': round(value_score, 1),
+            'score': round(value_score, 1) if value_score is not None else None,
             'details': {
-                'pe_ttm': round(pe, 2),
-                'pb': round(pb, 2),
-                'ps_ttm': round(ps, 2),
-                'dividend_yield': round(dividend_yield, 2),
+                'pe_ttm': round(pe, 2) if pe is not None else None,
+                'pb': round(pb, 2) if pb is not None else None,
+                'ps_ttm': round(ps, 2) if ps is not None else None,
+                'dividend_yield': round(dividend_yield, 2) if dividend_yield is not None else None,
                 'source': self.fundamentals.get('source', 'Unknown'),
             }
         }
@@ -276,22 +252,23 @@ class USStockFactorEngine:
         """
         fundamentals = self.get_fundamentals()
         
-        earnings_growth = fundamentals.get('earnings_growth', 10)
-        revenue_growth = fundamentals.get('revenue_growth', 10)
-        
-        # 盈利增长得分
-        earnings_score = min(100, 50 + earnings_growth * 2)
-        
-        # 营收增长得分
-        revenue_score = min(100, 50 + revenue_growth * 2)
-        
-        growth_score = (earnings_score * 0.6 + revenue_score * 0.4)
+        earnings_growth = fundamentals.get('earnings_growth')
+        revenue_growth = fundamentals.get('revenue_growth')
+        components = []
+        if earnings_growth is not None:
+            components.append((max(0, min(100, 50 + earnings_growth * 2)), 0.6))
+        if revenue_growth is not None:
+            components.append((max(0, min(100, 50 + revenue_growth * 2)), 0.4))
+        growth_score = (
+            sum(score * weight for score, weight in components) / sum(weight for _, weight in components)
+            if components else None
+        )
         
         return {
-            'score': round(growth_score, 1),
+            'score': round(growth_score, 1) if growth_score is not None else None,
             'details': {
-                'earnings_growth': round(earnings_growth, 2),
-                'revenue_growth': round(revenue_growth, 2),
+                'earnings_growth': round(earnings_growth, 2) if earnings_growth is not None else None,
+                'revenue_growth': round(revenue_growth, 2) if revenue_growth is not None else None,
             }
         }
     
@@ -302,22 +279,23 @@ class USStockFactorEngine:
         """
         fundamentals = self.get_fundamentals()
         
-        roe = fundamentals.get('roe', 15)
-        debt_to_equity = fundamentals.get('debt_to_equity', 0.5)
-        
-        # ROE 得分
-        roe_score = min(100, roe * 5)
-        
-        # 负债率得分 (低负债=高分)
-        debt_score = max(0, 100 - debt_to_equity * 50)
-        
-        quality_score = (roe_score * 0.7 + debt_score * 0.3)
+        roe = fundamentals.get('roe')
+        debt_to_equity = fundamentals.get('debt_to_equity')
+        components = []
+        if roe is not None:
+            components.append((max(0, min(100, roe * 5)), 0.7))
+        if debt_to_equity is not None:
+            components.append((max(0, min(100, 100 - debt_to_equity * 50)), 0.3))
+        quality_score = (
+            sum(score * weight for score, weight in components) / sum(weight for _, weight in components)
+            if components else None
+        )
         
         return {
-            'score': round(quality_score, 1),
+            'score': round(quality_score, 1) if quality_score is not None else None,
             'details': {
-                'roe': round(roe, 2),
-                'debt_to_equity': round(debt_to_equity, 2),
+                'roe': round(roe, 2) if roe is not None else None,
+                'debt_to_equity': round(debt_to_equity, 2) if debt_to_equity is not None else None,
             }
         }
     
@@ -328,7 +306,7 @@ class USStockFactorEngine:
         """
         # 简化版：用波动率和近期表现替代
         if self.df is None:
-            return {'score': 50, 'details': {}}
+            return {'score': None, 'details': {}}
         
         close = self.df['close']
         
@@ -366,12 +344,21 @@ class USStockFactorEngine:
         sentiment = self.calculate_sentiment_factors()
         
         # 综合评分
+        dimensions = {
+            'momentum': momentum,
+            'value': value,
+            'growth': growth,
+            'quality': quality,
+            'sentiment': sentiment,
+        }
+        scored_dimensions = [
+            (dimension['score'], FACTOR_WEIGHTS[name])
+            for name, dimension in dimensions.items()
+            if dimension.get('score') is not None
+        ]
         total_score = (
-            momentum['score'] * FACTOR_WEIGHTS['momentum'] +
-            value['score'] * FACTOR_WEIGHTS['value'] +
-            growth['score'] * FACTOR_WEIGHTS['growth'] +
-            quality['score'] * FACTOR_WEIGHTS['quality'] +
-            sentiment['score'] * FACTOR_WEIGHTS['sentiment']
+            sum(score * weight for score, weight in scored_dimensions) /
+            sum(weight for _, weight in scored_dimensions)
         )
         
         # 确定信号
@@ -429,22 +416,24 @@ class USStockFactorEngine:
         # 投资理由
         reasons = []
         # 估值理由
-        pe = fundamentals.get('pe_ttm', 20)
-        if pe < 15:
-            reasons.append(f'估值偏低 (PE={pe:.1f})')
-        elif pe < 25:
-            reasons.append('估值合理')
-        else:
-            reasons.append(f'估值偏高 (PE={pe:.1f})')
+        pe = fundamentals.get('pe_ttm')
+        if pe is not None and pe > 0:
+            if pe < 15:
+                reasons.append(f'估值偏低 (PE={pe:.1f})')
+            elif pe < 25:
+                reasons.append('估值合理')
+            else:
+                reasons.append(f'估值偏高 (PE={pe:.1f})')
         
         # 质量理由
-        roe = fundamentals.get('roe', 15)
-        if roe > 20:
-            reasons.append(f'盈利能力强 (ROE={roe:.1f}%)')
-        elif roe > 10:
-            reasons.append('盈利能力尚可')
-        else:
-            reasons.append(f'盈利能力偏弱 (ROE={roe:.1f}%)')
+        roe = fundamentals.get('roe')
+        if roe is not None:
+            if roe > 20:
+                reasons.append(f'盈利能力强 (ROE={roe:.1f}%)')
+            elif roe > 10:
+                reasons.append('盈利能力尚可')
+            else:
+                reasons.append(f'盈利能力偏弱 (ROE={roe:.1f}%)')
         
         # 技术面理由
         if rsi_14 < 30:
@@ -462,23 +451,20 @@ class USStockFactorEngine:
             'signal': signal,
             'action': action,
             'dimensions': {
-                'momentum': momentum,
-                'value': value,
-                'growth': growth,
-                'quality': quality,
-                'sentiment': sentiment,
+                **dimensions,
             },
             'current_price': float(current_price),
             'update_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             
             # 基本面指标
             'fundamentals': {
-                'pe_ttm': round(pe, 2),
-                'pb': round(fundamentals.get('pb', 2), 2),
-                'roe': round(roe, 2),
-                'dividend_yield': round(fundamentals.get('dividend_yield', 0), 2),
-                'eps': round(fundamentals.get('eps', pe * 0.5), 2),  # 估算
-                'bps': round(current_price / fundamentals.get('pb', 2), 2),
+                'pe_ttm': round(pe, 2) if pe is not None else None,
+                'pb': round(fundamentals['pb'], 2) if fundamentals.get('pb') is not None else None,
+                'roe': round(roe, 2) if roe is not None else None,
+                'dividend_yield': round(fundamentals['dividend_yield'], 2) if fundamentals.get('dividend_yield') is not None else None,
+                'eps': round(fundamentals['eps'], 2) if fundamentals.get('eps') is not None else None,
+                'bps': round(fundamentals['bps'], 2) if fundamentals.get('bps') is not None else None,
+                'source': fundamentals.get('source', 'Unavailable'),
             },
             
             # 技术指标

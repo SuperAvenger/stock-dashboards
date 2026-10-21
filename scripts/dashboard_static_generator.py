@@ -129,19 +129,19 @@ def generate_comprehensive_analysis(symbol, name, df, current_price):
         # ============ 五大维度评分 ============
         
         # 1. 估值维度 (30% 权重)
-        valuation_score = factors.get('value_composite', 50)
+        valuation_score = factors.get('value_composite')
         valuation_grade = get_grade(valuation_score)
         
         # 2. 成长维度 (25% 权重) - 用手动数据
-        growth_score = factors.get('growth_composite', 50)
+        growth_score = factors.get('growth_composite')
         growth_grade = get_grade(growth_score)
         
         # 3. 盈利质量 (20% 权重)
-        quality_score = factors.get('quality_composite', 50)
+        quality_score = factors.get('quality_composite')
         quality_grade = get_grade(quality_score)
         
         # 4. 市场情绪 (15% 权重)
-        sentiment_score = factors.get('sentiment_composite', 50)
+        sentiment_score = factors.get('sentiment_composite')
         sentiment_grade = get_grade(sentiment_score)
         
         # 5. 技术面 (10% 权重)
@@ -149,16 +149,27 @@ def generate_comprehensive_analysis(symbol, name, df, current_price):
         tech_grade = get_grade(tech_score)
         
         # ============ 综合评分 ============
+        base_weights = {
+            'valuation': 0.30, 'growth': 0.25, 'quality': 0.20,
+            'sentiment': 0.15, 'technical': 0.10,
+        }
+        available_scores = {
+            'valuation': valuation_score, 'growth': growth_score,
+            'quality': quality_score, 'sentiment': sentiment_score,
+            'technical': tech_score,
+        }
+        available_weight = sum(base_weights[key] for key, score in available_scores.items() if score is not None)
         total_score = (
-            valuation_score * 0.30 +
-            growth_score * 0.25 +
-            quality_score * 0.20 +
-            sentiment_score * 0.15 +
-            tech_score * 0.10
+            sum(score * base_weights[key] for key, score in available_scores.items() if score is not None) / available_weight
+            if available_weight else None
         )
         
         # 综合评级
-        if total_score >= 80:
+        if total_score is None:
+            rating = '数据不足'
+            rating_color = '#6b7280'
+            action = '暂无足够数据'
+        elif total_score >= 80:
             rating = '强烈推荐'
             rating_color = '#22c55e'
             action = '建仓 70-80%'
@@ -182,14 +193,16 @@ def generate_comprehensive_analysis(symbol, name, df, current_price):
         # ============ 关键数据 ============
         pe = factors.get('pe_score')
         pb = factors.get('pb_score')
-        roe = factors.get('roe_score')
+        eps_ttm = fundamentals.get('eps_ttm')
+        bps = fundamentals.get('bps')
+        roe = (float(eps_ttm) / float(bps) * 100) if eps_ttm is not None and bps else None
         dividend = factors.get('dividend_score')
         
         # 计算实际 PE/PB 值
         fundamentals = engine.fundamentals
         pe_ttm = fundamentals.get('pe_ttm')
         pb_ratio = fundamentals.get('pb')
-        dividend_yield = fundamentals.get('dividend_yield', 0)
+        dividend_yield = fundamentals.get('dividend_yield')
         
         # 52 周数据
         high_52w = df['high'].rolling(250).max().iloc[-1] if len(df) >= 250 else df['high'].max()
@@ -207,24 +220,24 @@ def generate_comprehensive_analysis(symbol, name, df, current_price):
         }, fundamentals, tech, current_price)
         
         return {
-            'total_score': round(total_score),
+            'total_score': round(total_score) if total_score is not None else None,
             'rating': rating,
             'rating_color': rating_color,
             'action': action,
             'dimensions': {
-                'valuation': {'score': round(valuation_score), 'grade': valuation_grade, 'weight': 30},
-                'growth': {'score': round(growth_score), 'grade': growth_grade, 'weight': 25},
-                'quality': {'score': round(quality_score), 'grade': quality_grade, 'weight': 20},
-                'sentiment': {'score': round(sentiment_score), 'grade': sentiment_grade, 'weight': 15},
-                'technical': {'score': round(tech_score), 'grade': tech_grade, 'weight': 10},
+                'valuation': {'score': round(valuation_score) if valuation_score is not None else None, 'grade': valuation_grade, 'weight': round(base_weights['valuation'] / available_weight * 100) if valuation_score is not None and available_weight else 0},
+                'growth': {'score': round(growth_score) if growth_score is not None else None, 'grade': growth_grade, 'weight': round(base_weights['growth'] / available_weight * 100) if growth_score is not None and available_weight else 0},
+                'quality': {'score': round(quality_score) if quality_score is not None else None, 'grade': quality_grade, 'weight': round(base_weights['quality'] / available_weight * 100) if quality_score is not None and available_weight else 0},
+                'sentiment': {'score': round(sentiment_score) if sentiment_score is not None else None, 'grade': sentiment_grade, 'weight': round(base_weights['sentiment'] / available_weight * 100) if sentiment_score is not None and available_weight else 0},
+                'technical': {'score': round(tech_score) if tech_score is not None else None, 'grade': tech_grade, 'weight': round(base_weights['technical'] / available_weight * 100) if tech_score is not None and available_weight else 0},
             },
             'fundamentals': {
                 'pe_ttm': round(pe_ttm, 2) if pe_ttm else None,
                 'pb': round(pb_ratio, 2) if pb_ratio else None,
-                'roe': round(roe) if roe else None,
-                'dividend_yield': round(dividend_yield, 2) if dividend_yield else None,
-                'eps_ttm': round(fundamentals.get('eps_ttm', 0), 2) if fundamentals.get('eps_ttm') else None,
-                'bps': round(fundamentals.get('bps', 0), 2) if fundamentals.get('bps') else None,
+                'roe': round(roe, 2) if roe is not None else None,
+                'dividend_yield': round(float(dividend_yield), 2) if dividend_yield is not None else None,
+                'eps_ttm': round(float(fundamentals['eps_ttm']), 2) if fundamentals.get('eps_ttm') is not None else None,
+                'bps': round(float(fundamentals['bps']), 2) if fundamentals.get('bps') is not None else None,
             },
             'technical': {
                 'rsi': round(tech['rsi'], 1),
@@ -248,6 +261,7 @@ def generate_comprehensive_analysis(symbol, name, df, current_price):
         return get_default_analysis(current_price)
 
 def get_grade(score):
+    if score is None: return 'N/A'
     if score >= 80: return 'A'
     if score >= 60: return 'B'
     if score >= 40: return 'C'
@@ -299,35 +313,37 @@ def generate_investment_reasons(scores, fundamentals, tech, current_price):
     
     # 估值
     v = scores['valuation']
-    if v >= 70:
-        reasons.append("估值极具吸引力，安全边际高")
-    elif v >= 50:
-        reasons.append("估值合理，具备配置价值")
-    elif v >= 30:
-        reasons.append("估值偏高，需等待更好买点")
-    else:
-        reasons.append("估值泡沫，警惕回调风险")
+    if v is not None:
+        if v >= 70:
+            reasons.append("估值极具吸引力，安全边际高")
+        elif v >= 50:
+            reasons.append("估值合理，具备配置价值")
+        elif v >= 30:
+            reasons.append("估值偏高，需等待更好买点")
+        else:
+            reasons.append("估值偏高，需谨慎评估")
     
     # 盈利质量
     q = scores['quality']
-    if q >= 70:
-        reasons.append("ROE 优异，盈利能力强")
-    elif q >= 50:
-        reasons.append("盈利质量良好")
-    else:
-        reasons.append("盈利能力偏弱，需观察改善")
+    if q is not None:
+        if q >= 70:
+            reasons.append("盈利质量较强")
+        elif q >= 50:
+            reasons.append("盈利质量尚可")
+        else:
+            reasons.append("盈利质量偏弱，需观察改善")
     
     # 技术面
     t = scores['technical']
-    if t >= 70:
+    if t is not None and t >= 70:
         reasons.append("技术面强势，趋势向上")
-    elif t >= 50:
+    elif t is not None and t >= 50:
         reasons.append("技术面中性，震荡整理")
-    else:
+    elif t is not None:
         reasons.append("技术面偏弱，趋势向下")
     
     # 股息
-    dy = fundamentals.get('dividend_yield', 0)
+    dy = fundamentals.get('dividend_yield')
     if dy and dy > 3:
         reasons.append(f"高股息 ({dy:.1f}%)，防御性强")
     
@@ -336,16 +352,16 @@ def generate_investment_reasons(scores, fundamentals, tech, current_price):
 def get_default_analysis(current_price):
     """默认分析 (数据不足时)"""
     return {
-        'total_score': 50,
+            'total_score': None,
         'rating': '数据不足',
         'rating_color': '#6b7280',
         'action': '观望',
         'dimensions': {
-            'valuation': {'score': 50, 'grade': 'C', 'weight': 30},
-            'growth': {'score': 50, 'grade': 'C', 'weight': 25},
-            'quality': {'score': 50, 'grade': 'C', 'weight': 20},
-            'sentiment': {'score': 50, 'grade': 'C', 'weight': 15},
-            'technical': {'score': 50, 'grade': 'C', 'weight': 10},
+            'valuation': {'score': None, 'grade': 'N/A', 'weight': 0},
+            'growth': {'score': None, 'grade': 'N/A', 'weight': 0},
+            'quality': {'score': None, 'grade': 'N/A', 'weight': 0},
+            'sentiment': {'score': None, 'grade': 'N/A', 'weight': 0},
+            'technical': {'score': None, 'grade': 'N/A', 'weight': 0},
         },
         'fundamentals': {},
         'technical': {},
@@ -682,6 +698,7 @@ def generate_html(stocks_data, update_time):
         }}
         
         function getScoreColor(score) {{
+            if (score === null || score === undefined) return '#6b7280';
             if (score >= 80) return '#22c55e';
             if (score >= 60) return '#84cc16';
             if (score >= 40) return '#eab308';
@@ -708,7 +725,7 @@ def generate_html(stocks_data, update_time):
                     </div>
                     
                     <div class="score-display">
-                        <div class="score-number" style="color: ${{getScoreColor(stock.total_score)}}">${{stock.total_score}}</div>
+                        <div class="score-number" style="color: ${{getScoreColor(stock.total_score)}}">${{stock.total_score ?? 'N/A'}}</div>
                         <div class="score-label">综合评分 / 100</div>
                         <div style="margin-top:15px;font-size:1.1em;color:#fbbf24">💡 ${{stock.action}}</div>
                     </div>
@@ -716,27 +733,27 @@ def generate_html(stocks_data, update_time):
                     <div class="dimensions-grid">
                         <div class="dimension-item">
                             <div class="dimension-label">💰 估值</div>
-                            <div class="dimension-score" style="color:${{getScoreColor(d.valuation.score)}}">${{d.valuation.score}}</div>
+                            <div class="dimension-score" style="color:${{getScoreColor(d.valuation.score)}}">${{d.valuation.score ?? 'N/A'}}</div>
                             <div class="dimension-grade grade-${{d.valuation.grade}}">${{d.valuation.grade}}</div>
                         </div>
                         <div class="dimension-item">
                             <div class="dimension-label">📈 成长</div>
-                            <div class="dimension-score" style="color:${{getScoreColor(d.growth.score)}}">${{d.growth.score}}</div>
+                            <div class="dimension-score" style="color:${{getScoreColor(d.growth.score)}}">${{d.growth.score ?? 'N/A'}}</div>
                             <div class="dimension-grade grade-${{d.growth.grade}}">${{d.growth.grade}}</div>
                         </div>
                         <div class="dimension-item">
                             <div class="dimension-label">💎 质量</div>
-                            <div class="dimension-score" style="color:${{getScoreColor(d.quality.score)}}">${{d.quality.score}}</div>
+                            <div class="dimension-score" style="color:${{getScoreColor(d.quality.score)}}">${{d.quality.score ?? 'N/A'}}</div>
                             <div class="dimension-grade grade-${{d.quality.grade}}">${{d.quality.grade}}</div>
                         </div>
                         <div class="dimension-item">
                             <div class="dimension-label">🎯 情绪</div>
-                            <div class="dimension-score" style="color:${{getScoreColor(d.sentiment.score)}}">${{d.sentiment.score}}</div>
+                            <div class="dimension-score" style="color:${{getScoreColor(d.sentiment.score)}}">${{d.sentiment.score ?? 'N/A'}}</div>
                             <div class="dimension-grade grade-${{d.sentiment.grade}}">${{d.sentiment.grade}}</div>
                         </div>
                         <div class="dimension-item">
                             <div class="dimension-label">📊 技术</div>
-                            <div class="dimension-score" style="color:${{getScoreColor(d.technical.score)}}">${{d.technical.score}}</div>
+                            <div class="dimension-score" style="color:${{getScoreColor(d.technical.score)}}">${{d.technical.score ?? 'N/A'}}</div>
                             <div class="dimension-grade grade-${{d.technical.grade}}">${{d.technical.grade}}</div>
                         </div>
                     </div>
@@ -746,27 +763,27 @@ def generate_html(stocks_data, update_time):
                         <div class="metrics-grid">
                             <div class="metric-item">
                                 <div class="metric-label">PE (TTM)</div>
-                                <div class="metric-value">${{f.pe_ttm !== null ? f.pe_ttm : 'N/A'}}</div>
+                                <div class="metric-value">${{f.pe_ttm ?? 'N/A'}}</div>
                             </div>
                             <div class="metric-item">
                                 <div class="metric-label">PB</div>
-                                <div class="metric-value">${{f.pb !== null ? f.pb : 'N/A'}}</div>
+                                <div class="metric-value">${{f.pb ?? 'N/A'}}</div>
                             </div>
                             <div class="metric-item">
                                 <div class="metric-label">ROE</div>
-                                <div class="metric-value">${{f.roe !== null ? f.roe+'%' : 'N/A'}}</div>
+                                <div class="metric-value">${{f.roe != null ? f.roe+'%' : 'N/A'}}</div>
                             </div>
                             <div class="metric-item">
                                 <div class="metric-label">股息率</div>
-                                <div class="metric-value">${{f.dividend_yield !== null ? f.dividend_yield+'%' : 'N/A'}}</div>
+                                <div class="metric-value">${{f.dividend_yield != null ? f.dividend_yield+'%' : 'N/A'}}</div>
                             </div>
                             <div class="metric-item">
                                 <div class="metric-label">EPS</div>
-                                <div class="metric-value">${{f.eps_ttm !== null ? f.eps_ttm : 'N/A'}}</div>
+                                <div class="metric-value">${{f.eps_ttm ?? 'N/A'}}</div>
                             </div>
                             <div class="metric-item">
                                 <div class="metric-label">BPS</div>
-                                <div class="metric-value">${{f.bps !== null ? f.bps : 'N/A'}}</div>
+                                <div class="metric-value">${{f.bps ?? 'N/A'}}</div>
                             </div>
                         </div>
                     </div>

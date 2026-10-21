@@ -76,7 +76,7 @@ def is_expired(stock, prev_stock=None):
     """
     signal = stock.get('technical', {}).get('signal', '')
     rating = stock.get('rating', '')
-    score = stock.get('total_score', 0)
+    score = stock.get('total_score')
 
     # 如果信号刚从金叉变死叉，不算截止（这是重要变化，需要推送）
     if prev_stock:
@@ -87,7 +87,7 @@ def is_expired(stock, prev_stock=None):
     if (signal, rating) in EXCLUDED_COMBOS:
         return True
 
-    if score < MIN_SCORE_THRESHOLD:
+    if isinstance(score, (int, float)) and score < MIN_SCORE_THRESHOLD:
         return True
 
     return False
@@ -136,9 +136,12 @@ def detect_changes(current_stocks, prev_state, market='hk'):
             continue
 
         # 检查评分大幅波动
-        old_score = prev.get('total_score', 0)
-        new_score = stock.get('total_score', 0)
-        if abs(new_score - old_score) >= SCORE_CHANGE_THRESHOLD:
+        old_score = prev.get('total_score')
+        new_score = stock.get('total_score')
+        if (old_score is None) != (new_score is None) or (
+            isinstance(old_score, (int, float)) and isinstance(new_score, (int, float))
+            and abs(new_score - old_score) >= SCORE_CHANGE_THRESHOLD
+        ):
             changed.append(stock)
             continue
 
@@ -212,9 +215,12 @@ def format_change_summary(stock, prev_state, market='hk'):
     if old_rating != new_rating:
         changes.append(f"评级：{old_rating or 'N/A'} → {new_rating}")
 
-    old_score = prev.get('total_score', 0)
-    new_score = stock.get('total_score', 0)
-    if abs(new_score - old_score) >= SCORE_CHANGE_THRESHOLD:
+    old_score = prev.get('total_score')
+    new_score = stock.get('total_score')
+    if (old_score is None) != (new_score is None) or (
+        isinstance(old_score, (int, float)) and isinstance(new_score, (int, float))
+        and abs(new_score - old_score) >= SCORE_CHANGE_THRESHOLD
+    ):
         direction = '↑' if new_score > old_score else '↓'
         changes.append(f"评分：{old_score} {direction} {new_score}")
 
@@ -235,9 +241,14 @@ def push_to_feishu(hk_data, us_data, prev_state):
     us_stocks = us_data.get('stocks', [])
     hk_time = hk_data.get('update_time', 'N/A')
 
-    # 检测变化
-    hk_changed, hk_expired = detect_changes(hk_stocks, prev_state, 'hk')
-    us_changed, us_expired = detect_changes(us_stocks, prev_state, 'us')
+    force_full_snapshot = os.environ.get('PUSH_FULL_SNAPSHOT', '').lower() == 'true'
+    if force_full_snapshot:
+        hk_changed, us_changed = hk_stocks, us_stocks
+        hk_expired, us_expired = [], []
+        print("📨 手动全量快照：本次包含全部监控股票")
+    else:
+        hk_changed, hk_expired = detect_changes(hk_stocks, prev_state, 'hk')
+        us_changed, us_expired = detect_changes(us_stocks, prev_state, 'us')
 
     # 有变化时仅在飞书确认成功后保存，避免失败消息被去重吞掉。
     new_state = dict(prev_state)
@@ -261,8 +272,8 @@ def push_to_feishu(hk_data, us_data, prev_state):
 
     # 构建消息
     lines = [
-        f"📊 **股票信号变化** ({datetime.now().strftime('%m-%d %H:%M')})",
-        f"共 {total_changed} 只股票有新变化",
+        f"📊 **{'股票看板快照' if force_full_snapshot else '股票信号变化'}** ({datetime.now().strftime('%m-%d %H:%M')})",
+        f"{'当前监控' if force_full_snapshot else '新变化'}：{total_changed} 只股票",
     ]
     if total_expired > 0:
         lines.append(f"⏭️ 已过滤截止信号：{total_expired} 只")
@@ -308,7 +319,7 @@ def push_to_feishu(hk_data, us_data, prev_state):
         "msg_type": "interactive",
         "card": {
             "header": {
-                "title": {"tag": "plain_text", "content": f"📊 股票信号变化 ({total_changed}只)"},
+                "title": {"tag": "plain_text", "content": f"📊 {'股票看板快照' if force_full_snapshot else '股票信号变化'} ({total_changed}只)"},
                 "template": "blue"
             },
             "elements": [
