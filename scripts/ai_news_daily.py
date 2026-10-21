@@ -24,6 +24,7 @@ except ImportError:
 
 FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK", "")
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+USE_GOOGLE_TRANSLATION_FALLBACK = os.environ.get("GOOGLE_TRANSLATION_FALLBACK", "false").lower() == "true"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 TRANSLATION_CACHE_FILE = Path(__file__).parent.parent / "output" / "translation-cache.json"
 TRANSLATION_INTERVAL_SECONDS = 0.8
@@ -355,9 +356,9 @@ def main():
     all_items = dedup(all_items)
     print(f"\n共采集 {len(all_items)} 条 AI 资讯")
 
-    # 优先用 DeepSeek 批量翻译；缺少密钥或批次失败时，使用带缓存和退避的 Google 备用翻译。
+    # 优先用 DeepSeek 批量翻译。Google 备用翻译需要显式启用，以免再次触发限流。
     cache = load_translation_cache()
-    if HAS_TRANSLATOR or DEEPSEEK_API_KEY:
+    if DEEPSEEK_API_KEY or (HAS_TRANSLATOR and USE_GOOGLE_TRANSLATION_FALLBACK):
         print("\n>>> 翻译英文标题...")
         en_titles = [(i, item['title']) for i, item in enumerate(all_items) if not is_chinese(item['title'])]
         if en_titles:
@@ -381,7 +382,7 @@ def main():
                 translated = deepseek_translations.get(idx)
                 if translated:
                     print(f"  DeepSeek 已翻译: {title[:70]}")
-                elif HAS_TRANSLATOR:
+                elif HAS_TRANSLATOR and USE_GOOGLE_TRANSLATION_FALLBACK:
                     delay = TRANSLATION_INTERVAL_SECONDS - (time.monotonic() - last_request_at)
                     if delay > 0:
                         time.sleep(delay)
@@ -402,7 +403,10 @@ def main():
             save_translation_cache(cache)
             print(f"  中文标题可用 {len(all_items)} 条；本次翻译失败 {len(failed_titles)} 条")
     else:
-        raise RuntimeError("未配置 DEEPSEEK_API_KEY，且 Google 备用翻译组件不可用；已停止发送英文资讯")
+        raise RuntimeError(
+            "未配置 DEEPSEEK_API_KEY；Google 翻译回退默认关闭以避免限流。"
+            "已停止资讯推送，没有发送英文标题。"
+        )
 
     if not all(is_chinese(item['title']) for item in all_items):
         raise RuntimeError("日报含未翻译标题，已停止推送")
