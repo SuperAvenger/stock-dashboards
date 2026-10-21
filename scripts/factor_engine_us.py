@@ -107,7 +107,8 @@ class USStockFactorEngine:
                     'pe_ttm': number('trailingPE'),
                     'pb': number('priceToBook'),
                     'ps_ttm': number('priceToSalesTrailing12Months'),
-                    'dividend_yield': number('dividendYield', 100),
+                    # Yahoo's dividendYield field is already expressed in percent units.
+                    'dividend_yield': number('dividendYield'),
                     'roe': number('returnOnEquity', 100),
                     'earnings_growth': number('earningsGrowth', 100),
                     'revenue_growth': number('revenueGrowth', 100),
