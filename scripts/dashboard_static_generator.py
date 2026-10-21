@@ -193,13 +193,13 @@ def generate_comprehensive_analysis(symbol, name, df, current_price):
         # ============ 关键数据 ============
         pe = factors.get('pe_score')
         pb = factors.get('pb_score')
+        fundamentals = engine.fundamentals
         eps_ttm = fundamentals.get('eps_ttm')
         bps = fundamentals.get('bps')
         roe = (float(eps_ttm) / float(bps) * 100) if eps_ttm is not None and bps else None
         dividend = factors.get('dividend_score')
         
         # 计算实际 PE/PB 值
-        fundamentals = engine.fundamentals
         pe_ttm = fundamentals.get('pe_ttm')
         pb_ratio = fundamentals.get('pb')
         dividend_yield = fundamentals.get('dividend_yield')
@@ -941,7 +941,7 @@ def main():
         
         d = analysis['dimensions']
         print(f"  综合：{analysis['total_score']} | {analysis['rating']} | {analysis['action']}")
-        print(f"  维度：估={d['valuation']['score']:>3} 成={d['growth']['score']:>3} 质={d['quality']['score']:>3} 情={d['sentiment']['score']:>3} 技={d['technical']['score']:>3}")
+        print(f"  维度：估={str(d['valuation']['score'] if d['valuation']['score'] is not None else 'N/A'):>3} 成={str(d['growth']['score'] if d['growth']['score'] is not None else 'N/A'):>3} 质={str(d['quality']['score'] if d['quality']['score'] is not None else 'N/A'):>3} 情={str(d['sentiment']['score'] if d['sentiment']['score'] is not None else 'N/A'):>3} 技={str(d['technical']['score'] if d['technical']['score'] is not None else 'N/A'):>3}")
     
     if not stocks_data:
         raise RuntimeError('No stock data generated; refusing to publish an empty dashboard')
